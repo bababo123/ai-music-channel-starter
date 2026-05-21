@@ -4,7 +4,9 @@
 
 這是一個給學員使用的 AI 音樂 YouTube 頻道 starter repo。它示範如何把 AI 音樂生成、圖片素材、音訊處理、影片渲染、人工審查、YouTube 上傳與頻道數據追蹤，整理成一套可以重複執行的內容生產流程。
 
-這個公開版本只包含可執行的 starter code 與基本文件。Codex 引導式教練 Skill 會另外透過私人社群提供。
+這個公開版本包含可執行的 starter code 與基本文件，agent 讀完文件應該可以幫你把 90% 的內容做完。
+
+若你需要更詳細的安裝，我另外有設計在 Codex 中的引導式教練 Skill 會在 https://www.skool.com/ai10x 社群提供，可以一步一步的引導你完成。
 
 ## 這個專案會學到什麼
 
@@ -12,6 +14,7 @@
 - 用 SQLite 保存 episodes、tracks、assets、審核紀錄、上傳紀錄與數據快照。
 - 用 provider abstraction 串接 AI 音樂生成服務。
 - 用 FFmpeg / ffprobe 做音訊 QC、混音與影片處理。
+- 用 hyperframe 生成轉場漸變動畫
 - 用 Sharp 產生固定規格的縮圖與文字排版。
 - 選擇性同步 Notion 作為人工審核 dashboard。
 - 用 YouTube Data API 做 private upload、thumbnail、playlist、status check 和 performance tracking。
@@ -101,7 +104,7 @@ npm run youtube:track-performance -- --channel <channel-key> --episode-id <episo
 完整流程會用到：
 
 - MiniMax API：AI 音樂生成
-- Codex / OpenAI image workflow：圖片素材
+- Codex / OpenAI image workflow：圖片素材 (可以讓 Codex 自己生成)
 - FFmpeg / ffprobe：音訊與影片處理
 - Notion API：人工審核 dashboard，可選
 - YouTube Data API：上傳、playlist、status 與數據追蹤
@@ -119,10 +122,6 @@ Codex 引導式教練 Skill 不包含在公開 repo 中。它會透過私人社�
 - 做人工審核 checklist
 - 做 YouTube upload dry run
 - 建立定期數據追蹤習慣
-
-收到私人社群提供的 skill 後，請參考：
-
-[docs/STUDENT_SKILL_INSTALLATION.md](docs/STUDENT_SKILL_INSTALLATION.md)
 
 ## 安全預設
 
