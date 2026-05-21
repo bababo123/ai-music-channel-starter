@@ -1,0 +1,28 @@
+node_modules/
+dist/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Local/generated data
+data/
+outputs/
+logs/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Rendered media outputs
+video/renders/
+video/hyperframes/assets/episode/
+video/hyperframes/snapshots/
+video/hyperframes-transition-demo/assets/episode/
+video/hyperframes-transition-demo/snapshots/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
