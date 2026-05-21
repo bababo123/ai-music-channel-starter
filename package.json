@@ -4,7 +4,7 @@
   "description": "Student starter kit for a review-gated AI music YouTube channel pipeline.",
   "main": "dist/cli.js",
   "scripts": {
-    "student:doctor": "node skills/ai-music-channel-coach/scripts/project-doctor.mjs",
+    "student:doctor": "node scripts/project-doctor.mjs",
     "cli": "tsx src/cli.ts",
     "db:migrate": "tsx src/cli.ts db:migrate",
     "episode:create": "tsx src/cli.ts episode:create",

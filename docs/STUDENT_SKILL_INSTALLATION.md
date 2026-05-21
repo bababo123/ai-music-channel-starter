@@ -1,70 +1,57 @@
-# Student Skill Installation
+# Codex 教練 Skill 安裝說明
 
-This project includes a course helper skill at:
+[README](../README.md) 預設使用繁體中文。Codex 教練 Skill 不包含在公開 repo 中，會另外透過私人社群提供。
 
-```text
-skills/ai-music-channel-coach/
-```
+## 為什麼 Skill 不放在公開 Repo
 
-The skill is meant to guide students through setup, API configuration, episode production, review, YouTube upload, and performance tracking.
+公開 repo 負責提供可執行的 starter code。私人 skill 則負責提供課程引導、學員 intake、審核 checklist、操作節奏與教學助教流程。
 
-## Recommended Distribution
+這樣可以讓公開 repo 保持乾淨，同時把課程加值內容留在私人社群中。
 
-For private students, distribute two things together:
+## 安裝方式
 
-1. A clean starter repo.
-2. The `ai-music-channel-coach` skill.
-
-The repo contains runnable code. The skill teaches the agent how to guide the student through that code.
-
-## Install Option A: Bundled With Starter Repo
-
-Keep the skill folder inside the repo:
+收到私人社群提供的資料夾後，應該會看到：
 
 ```text
-skills/ai-music-channel-coach/
+ai-music-channel-coach/
+  SKILL.md
+  references/
+  templates/
+  scripts/
 ```
 
-Then the student can ask Codex:
-
-```text
-Use the ai-music-channel-coach skill to help me set up this project.
-```
-
-The doctor script can be run from the project root:
-
-```powershell
-node skills/ai-music-channel-coach/scripts/project-doctor.mjs
-```
-
-## Install Option B: Copy To Codex Skills Folder
-
-Copy the folder:
-
-```text
-skills/ai-music-channel-coach/
-```
-
-into the student's local Codex skills directory, for example:
+把整個資料夾複製到你的 Codex skills 目錄，例如：
 
 ```text
 C:\Users\<student>\.codex\skills\ai-music-channel-coach\
 ```
 
-Then restart Codex so the skill list refreshes.
+複製完成後，重新啟動 Codex，讓 skill list 重新載入。
 
-## First Student Prompt
+## 第一個 Prompt
 
-Recommended first prompt:
+建議在 starter repo 根目錄開啟 Codex，然後輸入：
 
 ```text
-Use ai-music-channel-coach. I want to set up the AI music channel starter project. Please guide me through the intake and setup checks.
+Use ai-music-channel-coach. 我想設定 AI music channel starter project，請先帶我做 intake 和 setup check。
 ```
 
-## Safety Notes
+Skill 會引導你：
 
-- Do not paste API keys or OAuth tokens into chat.
-- Put secrets in `.env`.
-- Use dry-run commands before real API calls or YouTube upload.
-- Upload as private by default.
-- Use the publish package and approval gate before any real upload.
+- 收集頻道定位
+- 確認本機工具
+- 檢查 `.env`
+- 規劃第一個 series / episode
+- 先跑 dry run
+- 建立人工審查流程
+- 設定 YouTube 上傳與數據追蹤
+
+## 注意事項
+
+- 不要把 API keys 或 OAuth tokens 貼到聊天對話。
+- secrets 請放在 `.env`。
+- 真實 API 呼叫前先跑 dry run。
+- YouTube 上傳前先產生 publish package。
+- 真實上傳預設使用 private。
+- 上傳前必須完成人工 approval。
+
