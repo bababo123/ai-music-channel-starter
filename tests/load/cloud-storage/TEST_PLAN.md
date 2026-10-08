@@ -13,7 +13,7 @@
 | 壓測機 | 獨立機器(≥4 vCPU / 8GB),與被測 server 同區網,避免壓測機成為瓶頸 |
 | 測試帳號 | 100 組(`user001`~`user100`)+ 1 組 admin,預先建立 |
 | 測試資料 | 照片 5,000 張(1~8MB)、影片 50 部(50MB~1GB,含 H.264/MP4)、一般檔案 1KB~500MB |
-| 工具 | k6(負載)、`monitor.sh`(伺服器資源)、Prometheus + Grafana(選配) |
+| 工具 | k6(負載)、伺服器上的系統工具(`htop`/`top`、`free`、`iostat`、`nload`/`iftop`、`ss`),手動觀察與記錄 |
 | 時鐘 | 壓測機與 server 皆 NTP 同步,方便對齊時間序列 |
 
 ## 3. 使用者行為模型(100 VU 比例)
@@ -42,7 +42,7 @@
 | TC-11 | 資料完整性 | 全程 | — | 上傳後下載 SHA-256 100% 一致;縮圖數量 = 上傳照片數 |
 
 ## 5. 監控指標(伺服器端)
-由 `monitor.sh` 每 1 秒取樣輸出 CSV(含時間戳),並對照 k6 時間軸。
+**手動**於伺服器上觀察並記錄(見 §7 手動監控步驟與 `manual-record-sheet.csv`),記錄時一併寫下時間,以便對照 k6 時間軸。
 
 | 類別 | 指標 | 來源 |
 |---|---|---|
@@ -74,7 +74,13 @@
 
 ## 7. 執行步驟
 1. 部署與正式相同版本至 staging,清空快取,記錄版本/設定(instance 規格、worker 數、連線池)。
-2. 在 server 上啟動監控:`./monitor.sh results/run1 1`(秒間隔,可選 `PID_PATTERN="node|java|thumbnail"`)。
+2. 在 server 上開好監控視窗(手動,不需腳本),例如:
+   - CPU / 程序:`htop`(或 `top`)
+   - 記憶體 / swap:`watch -n1 free -m`
+   - 網路:`nload` 或 `iftop`;連線數 `ss -s`
+   - 磁碟:`iostat -x 1`
+   - OOM:`dmesg -T | grep -i oom`
+   並在壓測期間依「手動監控時間點」把數值填入 `manual-record-sheet.csv`。
 3. 在壓測機執行:
    ```bash
    k6 run -e BASE_URL=https://staging.example.com \
@@ -84,7 +90,9 @@
           cloud-storage.k6.js
    ```
    `SCENARIO` 可選:`smoke` | `load` | `stress` | `spike` | `soak`。
-4. 結束後停止 `monitor.sh`(Ctrl+C),彙整 CSV 與 k6 報告,繪圖(Grafana 或 Excel)。
+4. 結束後彙整手動記錄表與 k6 報告,繪圖(Excel 即可)。
+
+**手動監控時間點(建議)**:測試開始前(基線)、爬升中、達到目標負載後每 5 分鐘、峰值時刻、降載後 2 分鐘;每次記錄 CPU、記憶體、網路、磁碟、連線數與時間。出現延遲突增或錯誤時,立即多記一筆。
 5. 比對 §6 準則,填寫 §9 報告。
 
 ## 8. 風險與注意事項
