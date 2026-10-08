@@ -44,23 +44,19 @@ const BIN_50MB = SCENARIO === 'smoke' ? mk(1) : mk(50);
 const BIN_500MB = __ENV.ENABLE_LARGE === '1' ? mk(500) : null;
 const PHOTO = open(__ENV.PHOTO_FILE || './sample.jpg', 'b'); // 請放一張 3~8MB 的 JPEG
 
-const stages = {
-  smoke:  [{ duration: '2m', target: 5 }],
-  load:   [{ duration: '5m', target: 100 }, { duration: '30m', target: 100 }, { duration: '2m', target: 0 }],
-  stress: [{ duration: '5m', target: 100 }, { duration: '10m', target: 100 },
-           { duration: '5m', target: 150 }, { duration: '10m', target: 150 },
-           { duration: '5m', target: 200 }, { duration: '10m', target: 200 }, { duration: '3m', target: 0 }],
-  spike:  [{ duration: '1m', target: 10 }, { duration: '10s', target: 100 },
-           { duration: '5m', target: 100 }, { duration: '10s', target: 10 }, { duration: '3m', target: 10 }],
-  soak:   [{ duration: '10m', target: 100 }, { duration: '4h', target: 100 }, { duration: '5m', target: 0 }],
+// 所有 user 同時開始,不做爬升;每個情境只決定總人數與時間
+const plans = {
+  smoke: { users: 5,   duration: '2m' },
+  load:  { users: 100, duration: '30m' },
+  soak:  { users: 100, duration: '4h' },
 };
-const S = stages[SCENARIO];
+const S = plans[SCENARIO];
 if (!S) fail(`unknown SCENARIO ${SCENARIO}`);
 
-// 100 VU 依角色切成 4 組(各約 25%),以 exec 區分行為
-const split = (ratio) => S.map((s) => ({ duration: s.duration, target: Math.max(1, Math.round(s.target * ratio)) }));
-const scenario = (exec) => ({ executor: 'ramping-vus', startVUs: 0, stages: split(0.25),
-                              gracefulRampDown: '30s', gracefulStop: '2m', exec });
+// 總人數依角色平分成 4 組(各約 25%),以 exec 區分行為
+const perRole = Math.max(1, Math.round(S.users * 0.25));
+const scenario = (exec) => ({ executor: 'constant-vus', vus: perRole, duration: S.duration,
+                              gracefulStop: '2m', exec });
 
 export const options = {
   scenarios: {
