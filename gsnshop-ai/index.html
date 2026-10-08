@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GSN AI Inference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: sticky shop header + hash-routed views (首頁 / 模型 / Playground / 定價 / 控制台 / 文件) inside one 1200px column.
+   Re-theme to gsnshop by editing these tokens only. */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --sunken:#EAEEF3; --ink:#131923; --muted:#586274; --line:#D9DFE7;
+  --accent:#BE2348; --accent-ink:#FFFFFF; --accent-soft:#FBE6EB;
+  --d1:#BE2348; --d2:#2B67AC; --d3:#2C8A6A; --d4:#B07419; --d5:#7350B3;
+  --ok:#2C8A6A; --warn:#B07419; --bad:#BE2348;
+  --code-bg:#121821; --code-ink:#DCE3EC; --code-key:#F07C96; --code-str:#8FD3B4; --code-com:#7C8799;
+  --font-display:"Bricolage Grotesque","Noto Sans TC",system-ui,sans-serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px; --r-sm:6px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1118; --surface:#151B25; --sunken:#1B2330; --ink:#E5E9EF; --muted:#9AA3B3; --line:#263042;
+  --accent:#F05A7C; --accent-ink:#1A0A10; --accent-soft:#3A1823;
+  --d1:#F05A7C; --d2:#6AA5E6; --d3:#4EC29A; --d4:#E1A84B; --d5:#A88AE8;
+  --ok:#4EC29A; --warn:#E1A84B; --bad:#F05A7C;
+  --code-bg:#0A0E14; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0D1118; --surface:#151B25; --sunken:#1B2330; --ink:#E5E9EF; --muted:#9AA3B3; --line:#263042;
+  --accent:#F05A7C; --accent-ink:#1A0A10; --accent-soft:#3A1823;
+  --d1:#F05A7C; --d2:#6AA5E6; --d3:#4EC29A; --d4:#E1A84B; --d5:#A88AE8;
+  --ok:#4EC29A; --warn:#E1A84B; --bad:#F05A7C;
+  --code-bg:#0A0E14; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.65 var(--font-body);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-display);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,4.4vw,3rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.5rem;font-weight:700}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0}
+.mono{font-family:var(--font-mono);font-size:.86em}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1200px;margin:0 auto;padding-inline:16px;display:flex;align-items:center;gap:20px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 13px var(--font-display)}
+.brand b{font-family:var(--font-display);font-size:1.05rem}
+.brand small{display:block;font-size:.68rem;color:var(--muted);line-height:1}
+.nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.nav a{padding:6px 12px;border-radius:999px;text-decoration:none;color:var(--muted);white-space:nowrap;font-size:.92rem}
+.nav a:hover{color:var(--ink);background:var(--sunken)}
+.nav a[aria-current="page"]{color:var(--ink);background:var(--sunken);font-weight:500}
+.top-right{display:flex;align-items:center;gap:10px;flex:none}
+.bal{font-family:var(--font-mono);font-size:.82rem;padding:5px 10px;border:1px solid var(--line);border-radius:999px;text-decoration:none;white-space:nowrap}
+.bal i{font-style:normal;color:var(--muted)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;width:32px;height:32px;cursor:pointer;display:grid;place-items:center}
+
+.wrap{max-width:1200px;margin:0 auto;padding-inline:16px;padding-block:32px 72px}
+.view{display:grid;gap:40px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-decoration:none;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.sm{padding:5px 12px;font-size:.86rem}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.pad{padding:20px}
+.tag{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:999px;background:var(--sunken);color:var(--muted);white-space:nowrap}
+.tag.hot{background:var(--accent-soft);color:var(--accent)}
+.tag.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:middle}
+.section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.section-head p{max-width:62ch}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center}
+.hero-copy{display:grid;gap:18px;min-width:0}
+.hero-copy p.lead{font-size:1.08rem;color:var(--muted);max-width:52ch}
+.hero-stats{display:flex;gap:28px;flex-wrap:wrap;padding-top:6px}
+.hero-stats div b{display:block;font:700 1.4rem var(--font-display)}
+.hero-stats div span{font-size:.8rem;color:var(--muted)}
+
+.cluster{padding:18px;display:grid;gap:14px;min-width:0}
+.cluster-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.gpu{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;display:grid;gap:10px;background:var(--bg)}
+.gpu-top{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;flex-wrap:wrap}
+.vram{display:flex;height:22px;border-radius:4px;overflow:hidden;background:var(--sunken)}
+.vram span{display:block;height:100%;border-right:2px solid var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.78rem;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.gpu-meter{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:.76rem;color:var(--muted)}
+.gpu-meter b{display:block;color:var(--ink);font:600 .9rem var(--font-mono)}
+
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature{display:grid;gap:6px;align-content:start}
+.feature p{color:var(--muted);font-size:.93rem}
+
+/* model cards */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.mcard{padding:18px;display:grid;gap:12px;align-content:start;text-decoration:none;transition:border-color .15s}
+.mcard:hover{border-color:var(--accent)}
+.mcard-top{display:flex;gap:10px;align-items:center}
+.mlogo{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font:700 .8rem var(--font-mono);flex:none;color:#fff}
+.mcard h3{font-size:1rem;word-break:break-word}
+.mcard .org{font-size:.78rem;color:var(--muted)}
+.mcard p.desc{font-size:.88rem;color:var(--muted);min-height:3.2em}
+.mprice{display:flex;gap:18px;border-top:1px dashed var(--line);padding-top:10px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.mprice b{display:block;color:var(--ink);font:600 .95rem var(--font-mono)}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);padding:5px 14px;border-radius:999px;cursor:pointer;font-size:.88rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mgrid.fit{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+input[type=range],input[type=checkbox]{accent-color:var(--accent)}
+.search{flex:1;min-width:180px;max-width:320px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+
+/* code */
+.code{background:var(--code-bg);color:var(--code-ink);border-radius:var(--r);overflow:hidden;min-width:0}
+.code-tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid #ffffff14;overflow-x:auto}
+.code-tabs button{background:none;border:0;color:var(--code-com);padding:6px 12px;cursor:pointer;font:500 .8rem var(--font-mono);border-bottom:2px solid transparent}
+.code-tabs button[aria-selected="true"]{color:var(--code-ink);border-bottom-color:var(--code-key)}
+.code-tabs .copy{margin-left:auto}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto;font:13px/1.65 var(--font-mono)}
+.code .k{color:var(--code-key)} .code .s{color:var(--code-str)} .code .c{color:var(--code-com)}
+.split{display:grid;grid-template-columns:1fr 1.15fr;gap:32px;align-items:center}
+.split > *{min-width:0}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:.8rem;background:var(--sunken)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+td .sub{display:block;font-size:.76rem;color:var(--muted)}
+
+/* pricing */
+.packs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.pack{padding:20px;display:grid;gap:10px;align-content:start;cursor:pointer;text-align:left}
+.pack[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pack .amt{font:700 1.8rem var(--font-display)}
+.pack .bonus{font-size:.82rem;color:var(--ok);min-height:1.3em}
+.tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tier{padding:18px;display:grid;gap:8px;align-content:start}
+.tier ul{margin:0;padding-left:18px;color:var(--muted);font-size:.88rem}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.field{display:grid;gap:6px}
+.field label{font-size:.82rem;color:var(--muted)}
+.field input,.field select,.field textarea{padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);width:100%}
+.field input[type=range]{padding:0}
+.calc-out{background:var(--sunken);border-radius:var(--r);padding:20px;display:grid;gap:10px;align-content:start}
+.calc-out .big{font:700 2.2rem var(--font-display)}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
+
+/* playground */
+.pg{display:grid;grid-template-columns:1fr 290px;gap:16px;align-items:start}
+.pg > *{min-width:0}
+.chat{display:grid;grid-template-rows:auto 1fr auto;min-height:560px}
+.chat-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.msgs{padding:16px;display:grid;gap:14px;align-content:start;overflow-y:auto;max-height:520px}
+.msg{display:grid;gap:4px;max-width:85%}
+.msg .who{font-size:.72rem;color:var(--muted);font-family:var(--font-mono)}
+.msg .bubble{padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-break:break-word;font-size:.93rem}
+.msg.user{justify-self:end}
+.msg.user .bubble{background:var(--ink);color:var(--bg)}
+.msg.assistant .bubble{background:var(--sunken)}
+.msg .meta{font-size:.72rem;color:var(--muted);font-family:var(--font-mono)}
+.compose{border-top:1px solid var(--line);padding:12px;display:grid;gap:8px}
+.compose textarea{width:100%;resize:vertical;min-height:64px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--bg)}
+.side{padding:16px;display:grid;gap:16px}
+.side .field output{font-family:var(--font-mono);font-size:.8rem;color:var(--ink)}
+.suggest{display:flex;gap:6px;flex-wrap:wrap}
+.suggest button{font-size:.8rem;border:1px dashed var(--line);background:none;border-radius:999px;padding:3px 10px;cursor:pointer;color:var(--muted)}
+.caret::after{content:"▍";animation:blink 1s steps(1) infinite;color:var(--accent)}
+@keyframes blink{50%{opacity:0}}
+
+/* dashboard */
+.dash{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start}
+.dash > *{min-width:0}
+.dnav{display:grid;gap:2px;position:sticky;top:80px}
+.dnav button{text-align:left;padding:8px 12px;border:0;background:none;border-radius:var(--r-sm);cursor:pointer;color:var(--muted)}
+.dnav button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:500;box-shadow:inset 0 0 0 1px var(--line)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{padding:16px;display:grid;gap:4px}
+.stat b{font:700 1.5rem var(--font-display)}
+.stat span{font-size:.8rem;color:var(--muted)}
+.bar-track{height:6px;background:var(--sunken);border-radius:3px;overflow:hidden}
+.bar-track i{display:block;height:100%;background:var(--accent)}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:11px var(--font-mono)}
+.notice{padding:12px 14px;border-radius:var(--r-sm);background:var(--accent-soft);font-size:.88rem}
+.keybox{font-family:var(--font-mono);font-size:.86rem;background:var(--sunken);padding:10px 12px;border-radius:var(--r-sm);word-break:break-all}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:.9rem;z-index:50;box-shadow:0 6px 24px #0003}
+.docs{display:grid;grid-template-columns:200px 1fr;gap:32px}
+.docs > *{min-width:0}
+.docs article{display:grid;gap:16px;max-width:760px}
+.docs article p,.docs article li{color:var(--muted)}
+.docs article h2{margin-top:12px}
+.foot{border-top:1px solid var(--line);padding-block:24px;font-size:.82rem;color:var(--muted)}
+.foot-in{max-width:1200px;margin:0 auto;padding-inline:16px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+
+@media (max-width:960px){
+  .hero,.split,.calc{grid-template-columns:1fr}
+  .packs,.tiers,.stats{grid-template-columns:repeat(2,1fr)}
+  .pg,.dash,.docs{grid-template-columns:1fr}
+  .dnav{position:static;display:flex;overflow-x:auto}
+  .dnav button{white-space:nowrap}
+  .features{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .packs,.tiers,.stats{grid-template-columns:1fr}
+  .top-in{gap:10px}
+  .brand small{display:none}
+  .bal i{display:none}
+  .msg{max-width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#home" aria-label="GSN AI 首頁">
+      <span class="brand-mark">GSN</span>
+      <span><b>GSN Shop</b><small>AI 推論服務</small></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="主選單">
+      <a href="#home">首頁</a>
+      <a href="#models">模型</a>
+      <a href="#playground">Playground</a>
+      <a href="#pricing">定價</a>
+      <a href="#dashboard">控制台</a>
+      <a href="#docs">文件</a>
+    </nav>
+    <div class="top-right">
+      <a class="bal num" href="#dashboard" id="balChip"><i>餘額 </i>$0.00</a>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="切換深淺色">◐</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <span>GSN Shop · AI 推論服務（示範介面，金流與 API 為模擬）</span>
+    <span>OpenAI 相容 API · 運行於自有 2× NVIDIA H100 80GB</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- data ---------- */
+// Prices are USD per 1M tokens unless unit says otherwise. See MODEL_PRICING_PLAN.md for capacity math.
+const MODELS = [
+  {id:"gpt-oss-120b", name:"gpt-oss-120b", org:"OpenAI · Apache-2.0", type:"llm", color:"var(--d1)", logo:"OA",
+   desc:"117B 參數 MoE（每 token 啟用 5.1B），推理、工具呼叫、長文分析的旗艦模型。",
+   ctx:"128K", in:0.18, cached:0.09, out:0.72, speed:160, gpu:"GPU 0", quant:"MXFP4",
+   tags:["推理","Function calling","旗艦"], hot:true},
+  {id:"qwen3-30b-a3b-instruct-2507", name:"Qwen3-30B-A3B-Instruct-2507", org:"Alibaba Qwen · Apache-2.0", type:"llm", color:"var(--d2)", logo:"QW",
+   desc:"30B MoE（啟用 3B），繁中與多語能力佳，適合客服、摘要、RAG 問答。",
+   ctx:"64K", in:0.15, cached:0.075, out:0.60, speed:190, gpu:"GPU 1", quant:"FP8",
+   tags:["繁體中文","RAG","高 CP 值"], hot:true},
+  {id:"gpt-oss-20b", name:"gpt-oss-20b", org:"OpenAI · Apache-2.0", type:"llm", color:"var(--d1)", logo:"OA",
+   desc:"21B MoE（啟用 3.6B），延遲最低、單價最便宜，適合分類、抽取與 Agent 子任務。",
+   ctx:"32K", in:0.07, cached:0.035, out:0.30, speed:240, gpu:"GPU 1", quant:"MXFP4",
+   tags:["低延遲","最便宜"]},
+  {id:"qwen2.5-vl-7b-instruct", name:"Qwen2.5-VL-7B-Instruct", org:"Alibaba Qwen · Apache-2.0", type:"vision", color:"var(--d5)", logo:"VL",
+   desc:"圖片理解、OCR、表單與發票辨識。圖片依解析度換算為輸入 token。",
+   ctx:"32K", in:0.20, cached:0.10, out:0.20, speed:150, gpu:"GPU 1", quant:"AWQ 4-bit",
+   tags:["視覺","OCR"]},
+  {id:"bge-m3", name:"BGE-M3", org:"BAAI · MIT", type:"embed", color:"var(--d3)", logo:"EM",
+   desc:"多語向量嵌入（1024 維，最長 8K），中英混合檢索表現穩定。",
+   ctx:"8K", in:0.02, out:null, gpu:"GPU 1", quant:"FP16", tags:["Embedding","多語"]},
+  {id:"bge-reranker-v2-m3", name:"BGE-Reranker-v2-M3", org:"BAAI · Apache-2.0", type:"embed", color:"var(--d3)", logo:"RR",
+   desc:"重排序模型，搭配向量檢索把最相關的段落排到前面，提升 RAG 準確度。",
+   ctx:"8K", in:0.02, out:null, gpu:"GPU 1", quant:"FP16", tags:["Rerank"]},
+  {id:"whisper-large-v3-turbo", name:"Whisper large-v3-turbo", org:"OpenAI · MIT", type:"audio", color:"var(--d4)", logo:"WH",
+   desc:"語音轉文字，支援中文、台語口音中文與英文，輸出含時間軸字幕。",
+   unit:"min", perMin:0.0015, gpu:"GPU 0", quant:"FP16", tags:["語音轉文字","字幕"]},
+  {id:"dedicated-h100", name:"專屬 H100 80GB", org:"預約制 · 自帶或指定模型", type:"dedicated", color:"var(--ink)", logo:"H1",
+   desc:"整張 H100 專用，可部署 Llama-3.3-70B（FP8）、Qwen3-32B 或你的 LoRA 微調模型。",
+   unit:"hr", perHour:3.50, gpu:"GPU 1（離峰時段）", quant:"依模型", tags:["專屬部署","最少 4 小時"]}
+];
+const TYPE_LABEL = {llm:"語言模型", vision:"視覺", embed:"嵌入 / 重排", audio:"語音", dedicated:"專屬部署"};
+const GPUS = [
+  {name:"GPU 0 · H100 SXM 80GB", util:71, temp:63, power:548, parts:[
+    {label:"gpt-oss-120b 權重", gb:61, c:"var(--d1)"},
+    {label:"KV cache", gb:11, c:"color-mix(in srgb,var(--d1) 45%,transparent)"},
+    {label:"Whisper turbo", gb:3, c:"var(--d4)"}]},
+  {name:"GPU 1 · H100 SXM 80GB", util:58, temp:59, power:472, parts:[
+    {label:"Qwen3-30B-A3B", gb:40, c:"var(--d2)"},
+    {label:"gpt-oss-20b", gb:20, c:"color-mix(in srgb,var(--d1) 70%,var(--d2))"},
+    {label:"Qwen2.5-VL-7B", gb:10, c:"var(--d5)"},
+    {label:"BGE ×2", gb:4, c:"var(--d3)"}]}
+];
+const PACKS = [
+  {amt:10, bonus:0}, {amt:50, bonus:5}, {amt:200, bonus:10}, {amt:1000, bonus:15}
+];
+const TIERS = [
+  {name:"試用", cond:"註冊即送 $1 額度", rpm:10, tpm:"40K", extra:["僅限 Serverless 模型","7 天內有效"]},
+  {name:"Tier 1", cond:"累積儲值 ≥ $10", rpm:60, tpm:"200K", extra:["所有 Serverless 模型","Email 支援"]},
+  {name:"Tier 2", cond:"累積儲值 ≥ $100", rpm:300, tpm:"1M", extra:["可預約專屬 H100","批次 API 5 折"]},
+  {name:"企業", cond:"月用量 ≥ $1,000", rpm:"客製", tpm:"客製", extra:["保留容量 SLA","發票月結、專人窗口"]}
+];
+
+/* ---------- state (localStorage is a demo convenience only) ---------- */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("gsnai:"+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("gsnai:"+k, JSON.stringify(v)); }catch(e){} }
+};
+const state = {
+  balance: store.get("balance", 37.42),
+  keys: store.get("keys", [
+    {id:"k1", name:"production-chatbot", prefix:"gsn-sk-7f3a…c91e", created:"2026-09-12", last:"2 分鐘前"},
+    {id:"k2", name:"rag-indexer", prefix:"gsn-sk-b02d…44fa", created:"2026-09-28", last:"昨天"}
+  ]),
+  pg: {model:"qwen3-30b-a3b-instruct-2507", msgs:[], temp:0.7, max:1024, topP:0.95, sys:"你是 GSN 的客服助理，請用繁體中文簡潔回答。", spent:0},
+  dashTab: "overview",
+  pack: 1,
+  filter: "all", q: ""
+};
+function save(){ store.set("balance", state.balance); store.set("keys", state.keys); }
+
+/* ---------- helpers ---------- */
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const usd = (n, d=2) => "$" + Number(n).toLocaleString("en-US",{minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtRate = n => n == null ? "—" : "$" + (n < 0.1 ? n.toFixed(3) : n.toFixed(2));
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true, 2400); }
+function copy(text){
+  const done = () => toast("已複製");
+  try{ navigator.clipboard.writeText(text).then(done, () => toast("請手動選取複製")); }catch(e){ toast("請手動選取複製"); }
+}
+// rough token estimate: CJK ≈ 1 token/char, latin ≈ 4 chars/token
+function tokens(s){ const cjk=(s.match(/[\u3000-\u9fff\uff00-\uffef]/g)||[]).length; return Math.max(1, Math.round(cjk + (s.length-cjk)/4)); }
+function priceLine(m){
+  if(m.type==="audio") return `<div><span>每分鐘</span><b>${usd(m.perMin,4)}</b></div><div><span>每小時音訊</span><b>${usd(m.perMin*60)}</b></div>`;
+  if(m.type==="dedicated") return `<div><span>每 GPU 小時</span><b>${usd(m.perHour)}</b></div><div><span>月租保留</span><b>洽詢</b></div>`;
+  if(m.out==null) return `<div><span>每 1M token</span><b>${fmtRate(m.in)}</b></div><div><span>上下文</span><b>${m.ctx}</b></div>`;
+  return `<div><span>輸入 / 1M</span><b>${fmtRate(m.in)}</b></div><div><span>輸出 / 1M</span><b>${fmtRate(m.out)}</b></div><div><span>上下文</span><b>${m.ctx}</b></div>`;
+}
+function modelCard(m){
+  const href = (m.type==="llm"||m.type==="vision") ? `#playground` : `#docs`;
+  return `<a class="panel mcard" href="${href}" data-model="${m.id}">
+    <div class="mcard-top"><span class="mlogo" style="background:${m.color}">${m.logo}</span>
+      <div style="min-width:0"><h3>${esc(m.name)}</h3><div class="org">${esc(m.org)}</div></div></div>
+    <p class="desc">${esc(m.desc)}</p>
+    <div class="tags"><span class="tag">${TYPE_LABEL[m.type]}</span>${m.tags.map(t=>`<span class="tag${m.hot&&t===m.tags[0]?' hot':''}">${esc(t)}</span>`).join("")}</div>
+    <div class="mprice num">${priceLine(m)}</div>
+  </a>`;
+}
+function codeBlock(id, model){
+  const m = model || "gpt-oss-120b";
+  const snippets = {
+    python:`<span class="k">from</span> openai <span class="k">import</span> OpenAI
+
+client = OpenAI(
+    base_url=<span class="s">"https://api.gsnshop.amaryllo.us/v1"</span>,
+    api_key=<span class="s">"gsn-sk-..."</span>,  <span class="c"># 控制台 → API 金鑰</span>
+)
+
+resp = client.chat.completions.create(
+    model=<span class="s">"${m}"</span>,
+    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"用三句話介紹 H100"</span>}],
+    stream=<span class="k">True</span>,
+)
+<span class="k">for</span> chunk <span class="k">in</span> resp:
+    print(chunk.choices[0].delta.content <span class="k">or</span> <span class="s">""</span>, end=<span class="s">""</span>)`,
+    curl:`curl https://api.gsnshop.amaryllo.us/v1/chat/completions \\
+  -H <span class="s">"Authorization: Bearer $GSN_API_KEY"</span> \\
+  -H <span class="s">"Content-Type: application/json"</span> \\
+  -d <span class="s">'{
+    "model": "${m}",
+    "messages": [{"role": "user", "content": "用三句話介紹 H100"}],
+    "max_tokens": 512
+  }'</span>`,
+    node:`<span class="k">import</span> OpenAI <span class="k">from</span> <span class="s">"openai"</span>;
+
+<span class="k">const</span> client = <span class="k">new</span> OpenAI({
+  baseURL: <span class="s">"https://api.gsnshop.amaryllo.us/v1"</span>,
+  apiKey: process.env.GSN_API_KEY,
+});
+
+<span class="k">const</span> r = <span class="k">await</span> client.chat.completions.create({
+  model: <span class="s">"${m}"</span>,
+  messages: [{ role: <span class="s">"user"</span>, content: <span class="s">"用三句話介紹 H100"</span> }],
+});
+console.log(r.choices[0].message.content);`
+  };
+  return `<div class="code" data-code="${id}">
+    <div class="code-tabs" role="tablist">
+      ${Object.keys(snippets).map((k,i)=>`<button type="button" role="tab" aria-selected="${i===0}" data-lang="${k}">${k==="node"?"Node.js":k==="curl"?"cURL":"Python"}</button>`).join("")}
+      <button type="button" class="copy" data-copy>複製</button>
+    </div>
+    ${Object.entries(snippets).map(([k,v],i)=>`<pre data-pane="${k}" ${i?"hidden":""}>${v}</pre>`).join("")}
+  </div>`;
+}
+function wireCode(root){
+  root.querySelectorAll(".code").forEach(c=>{
+    c.addEventListener("click", e=>{
+      const b = e.target.closest("button"); if(!b) return;
+      if(b.dataset.copy!==undefined){ const p=[...c.querySelectorAll("pre")].find(p=>!p.hidden); copy(p.textContent); return; }
+      c.querySelectorAll("[data-lang]").forEach(x=>x.setAttribute("aria-selected", x===b));
+      c.querySelectorAll("pre").forEach(p=>p.hidden = p.dataset.pane!==b.dataset.lang);
+    });
+  });
+}
+
+/* ---------- views ---------- */
+function viewHome(){
+  const gpuHtml = GPUS.map(g=>{
+    const used = g.parts.reduce((a,p)=>a+p.gb,0);
+    return `<div class="gpu">
+      <div class="gpu-top"><b>${g.name}</b><span class="mono muted">${used} / 80 GB</span></div>
+      <div class="vram" role="img" aria-label="${g.name} 記憶體配置">${g.parts.map(p=>`<span title="${p.label} ${p.gb}GB" style="width:${p.gb/80*100}%;background:${p.c}"></span>`).join("")}</div>
+      <div class="legend">${g.parts.map(p=>`<span><i style="background:${p.c}"></i>${p.label} ${p.gb}GB</span>`).join("")}</div>
+      <div class="gpu-meter num"><span>使用率<b>${g.util}%</b></span><span>溫度<b>${g.temp}°C</b></span><span>功耗<b>${g.power} W</b></span></div>
+    </div>`;}).join("");
+  return `<div class="view">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">GSN Shop · AI 推論服務</span>
+        <h1>開源模型 API<br>按 token 計費</h1>
+        <p class="lead">gpt-oss、Qwen3、Whisper 與 BGE 都跑在我們自己的 H100 上。介面與 OpenAI 相容，換一行 base_url 就能上線。資料不離開自有機房，也不拿來訓練模型。用多少付多少，沒有月費。</p>
+        <div class="row"><a class="btn primary" href="#dashboard">領取 $1 試用額度</a><a class="btn" href="#playground">先試玩 Playground</a></div>
+        <div class="hero-stats num">
+          <div><b>$0.07</b><span>每 1M 輸入 token 起</span></div>
+          <div><b>~0.3 秒</b><span>首字延遲（TTFT）</span></div>
+          <div><b>7</b><span>個 Serverless 模型</span></div>
+        </div>
+      </div>
+      <div class="panel cluster">
+        <div class="cluster-head"><h3>叢集即時狀態</h3><span class="tag ok"><span class="dot"></span>全部正常</span></div>
+        ${gpuHtml}
+        <p class="muted" style="font-size:.78rem">示範數據。每張 H100 預留約 8% 記憶體給 CUDA 與執行環境。</p>
+      </div>
+    </section>
+
+    <section style="display:grid;gap:18px">
+      <div class="section-head"><div><span class="eyebrow">Serverless 模型</span><h2>精選模型</h2></div><a class="btn ghost sm" href="#models">看全部模型 →</a></div>
+      <div class="mgrid fit">${MODELS.filter(m=>m.type==="llm").map(modelCard).join("")}</div>
+    </section>
+
+    <section class="split">
+      <div style="display:grid;gap:14px">
+        <span class="eyebrow">OpenAI 相容</span>
+        <h2>改兩行設定，現有程式就能接上</h2>
+        <p class="muted">支援 Chat Completions、Embeddings、Audio Transcriptions 與串流輸出。LangChain、LlamaIndex、Dify、n8n 都能直接使用。</p>
+        <div class="row"><a class="btn sm" href="#docs">閱讀快速開始</a><a class="btn sm ghost" href="#dashboard">建立 API 金鑰</a></div>
+      </div>
+      ${codeBlock("home")}
+    </section>
+
+    <section class="features">
+      <div class="feature panel pad"><h3>資料留在自有機房</h3><p>請求只在 GSN 的 GPU 上處理，不轉送第三方，不保存提示詞內容，也不用於模型訓練。</p></div>
+      <div class="feature panel pad"><h3>預付儲值，帳單透明</h3><p>每個請求依實際 token 扣款，控制台可依金鑰、模型查看用量。可設定餘額不足提醒。</p></div>
+      <div class="feature panel pad"><h3>需要整張卡也可以</h3><p>累積儲值滿 $100 可預約專屬 H100，部署 70B 模型或自己的 LoRA 微調版本。</p></div>
+    </section>
+  </div>`;
+}
+
+function viewModels(){
+  const chips = [["all","全部"],["llm","語言模型"],["vision","視覺"],["embed","嵌入 / 重排"],["audio","語音"],["dedicated","專屬部署"]];
+  return `<div class="view">
+    <div class="section-head">
+      <div style="display:grid;gap:8px"><span class="eyebrow">模型庫</span><h1>模型</h1>
+      <p class="muted">所有 Serverless 模型常駐在 GPU 上，沒有冷啟動。價格以美元計，依實際用量從儲值餘額扣款。</p></div>
+    </div>
+    <div class="filters">
+      ${chips.map(([k,l])=>`<button type="button" class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join("")}
+      <input class="search" id="modelSearch" type="search" placeholder="搜尋模型名稱或用途" value="${esc(state.q)}" aria-label="搜尋模型">
+    </div>
+    <div class="mgrid" id="modelGrid"></div>
+  </div>`;
+}
+function renderModelGrid(){
+  const q = state.q.trim().toLowerCase();
+  const list = MODELS.filter(m => (state.filter==="all"||m.type===state.filter) &&
+    (!q || (m.name+m.desc+m.tags.join("")+m.org).toLowerCase().includes(q)));
+  $("#modelGrid").innerHTML = list.length ? list.map(modelCard).join("") : `<p class="muted">找不到符合「${esc(state.q)}」的模型。試試「中文」、「語音」或「embedding」。</p>`;
+}
+
+function viewPlayground(){
+  const chatModels = MODELS.filter(m=>m.type==="llm"||m.type==="vision");
+  const pg = state.pg;
+  return `<div class="view">
+    <div class="section-head"><div style="display:grid;gap:8px"><span class="eyebrow">Playground</span><h1>Playground</h1>
+      <p class="muted">直接在瀏覽器測試模型。每次對話依實際 token 從餘額扣款，費用顯示在每則回覆下方。</p></div></div>
+    <div class="pg">
+      <div class="panel chat">
+        <div class="chat-head">
+          <div class="row" style="gap:8px"><span class="dot"></span><b id="pgModelName"></b><span class="tag mono" id="pgSpeed"></span></div>
+          <div class="row" style="gap:8px"><span class="muted num" style="font-size:.82rem">本次花費 <b class="mono" id="pgSpent">${usd(pg.spent,5)}</b></span><button class="btn sm ghost" type="button" id="pgClear">清除對話</button></div>
+        </div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <form class="compose" id="compose">
+          <div class="suggest" id="suggest">
+            <button type="button">幫我寫一封延遲出貨的道歉信</button>
+            <button type="button">H100 跟 A100 差在哪？</button>
+            <button type="button">把這段話翻成英文：我們下週三上線</button>
+          </div>
+          <label for="pgInput" class="eyebrow">訊息</label>
+          <textarea id="pgInput" placeholder="輸入訊息，Enter 送出，Shift+Enter 換行"></textarea>
+          <div class="row" style="justify-content:space-between"><span class="muted mono" style="font-size:.78rem" id="pgEst">約 0 tokens</span><button class="btn primary" type="submit" id="pgSend">送出</button></div>
+        </form>
+      </div>
+      <aside class="panel side">
+        <div class="field"><label for="pgModel">模型</label>
+          <select id="pgModel">${chatModels.map(m=>`<option value="${m.id}" ${m.id===pg.model?"selected":""}>${m.name}</option>`).join("")}</select></div>
+        <div class="field"><label for="pgSys">System prompt</label><textarea id="pgSys" rows="4">${esc(pg.sys)}</textarea></div>
+        <div class="field"><label for="pgTemp">Temperature <output id="oTemp">${pg.temp}</output></label><input id="pgTemp" type="range" min="0" max="2" step="0.1" value="${pg.temp}"></div>
+        <div class="field"><label for="pgTopP">Top P <output id="oTopP">${pg.topP}</output></label><input id="pgTopP" type="range" min="0" max="1" step="0.05" value="${pg.topP}"></div>
+        <div class="field"><label for="pgMax">Max tokens <output id="oMax">${pg.max}</output></label><input id="pgMax" type="range" min="64" max="8192" step="64" value="${pg.max}"></div>
+        <div class="field"><label>此模型價格</label><div class="mono num" id="pgPrice" style="font-size:.82rem"></div></div>
+        <a class="btn sm" href="#docs">複製成 API 程式碼</a>
+      </aside>
+    </div>
+  </div>`;
+}
+const CANNED = [
+  {k:/道歉|延遲|出貨/, a:"親愛的顧客您好：\n\n非常抱歉，您訂購的商品因供應商備料延誤，預計出貨日將延後 3 個工作天，最晚於 10 月 14 日前寄出。\n\n為表歉意，我們已在您的帳戶加入一張 NT$100 折價券，下次購物可直接折抵。若您希望取消訂單，回覆此信即可全額退款。\n\n謝謝您的耐心與支持。\nGSN Shop 客服中心"},
+  {k:/H100|A100|GPU/i, a:"重點差異有三個：\n\n1. 算力：H100 的 FP8 Tensor Core 讓推論吞吐量約為 A100 的 2–3 倍，A100 不支援 FP8。\n2. 記憶體頻寬：H100 SXM 為 3.35 TB/s HBM3，A100 80GB 約 2.0 TB/s。大型語言模型生成 token 時主要受頻寬限制，所以差距很明顯。\n3. Transformer Engine：H100 會自動在 FP8 與 FP16 之間切換，訓練與推論都更省記憶體。\n\n同樣 80GB，H100 能用 FP8 放下更大的模型，或同時服務更多使用者。"},
+  {k:/翻|英文|translate/i, a:"We go live next Wednesday."},
+];
+function cannedReply(text, model){
+  for(const c of CANNED) if(c.k.test(text)) return c.a;
+  return `（示範回覆）我是 ${model.name}，目前跑在 ${model.gpu}（${model.quant}）。正式上線後，這裡會串流顯示模型的真實輸出。\n\n你剛才輸入了 ${tokens(text)} 個 token 左右。可以試試左側的範例問題，看看計費怎麼運作。`;
+}
+function renderPg(){
+  const pg = state.pg, m = MODELS.find(x=>x.id===pg.model);
+  $("#pgModelName").textContent = m.name;
+  $("#pgSpeed").textContent = `~${m.speed} tok/s`;
+  $("#pgPrice").innerHTML = `輸入 ${fmtRate(m.in)} · 快取 ${fmtRate(m.cached)} · 輸出 ${fmtRate(m.out)}<br><span class="muted">每 1M tokens，上下文 ${m.ctx}</span>`;
+  $("#pgSpent").textContent = usd(pg.spent,5);
+  const box = $("#msgs");
+  box.innerHTML = pg.msgs.length ? pg.msgs.map(x=>`<div class="msg ${x.role}"><span class="who">${x.role==="user"?"你":esc(x.model)}</span>
+      <div class="bubble${x.streaming?" caret":""}">${esc(x.content)}</div>
+      ${x.meta?`<span class="meta num">${x.meta}</span>`:""}</div>`).join("")
+    : `<div class="muted" style="font-size:.9rem;padding:24px 0;text-align:center">選一個模型，輸入訊息開始測試。<br>Playground 使用你的帳戶餘額，費用通常不到 $0.001。</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+function sendPg(text){
+  const pg = state.pg; if(!text.trim() || pg.busy) return;
+  if(state.balance <= 0){ toast("餘額不足，請先儲值"); location.hash="#dashboard"; return; }
+  const m = MODELS.find(x=>x.id===pg.model);
+  pg.msgs.push({role:"user", content:text});
+  const reply = cannedReply(text, m);
+  const msg = {role:"assistant", model:m.name, content:"", streaming:true};
+  pg.msgs.push(msg); pg.busy = true; $("#pgSend").disabled = true;
+  const inTok = tokens(pg.sys) + pg.msgs.filter(x=>x!==msg).reduce((a,x)=>a+tokens(x.content),0);
+  const chars = [...reply]; let i = 0; const t0 = performance.now();
+  const step = Math.max(1, Math.round(m.speed/40));
+  renderPg();
+  const timer = setInterval(()=>{
+    i += step; msg.content = chars.slice(0,i).join("");
+    if(i >= chars.length){
+      clearInterval(timer);
+      const outTok = tokens(reply), cost = (inTok*m.in + outTok*m.out)/1e6;
+      msg.streaming = false;
+      msg.meta = `${inTok} in · ${outTok} out · ${((performance.now()-t0)/1000).toFixed(1)}s · ${usd(cost,6)}`;
+      pg.spent += cost; state.balance = Math.max(0, state.balance - cost); save(); updateBal();
+      pg.busy = false; $("#pgSend").disabled = false;
+    }
+    renderPg();
+  }, 25);
+}
+
+function viewPricing(){
+  const llm = MODELS.filter(m=>m.type==="llm"||m.type==="vision");
+  return `<div class="view">
+    <div class="section-head"><div style="display:grid;gap:8px"><span class="eyebrow">定價</span><h1>依用量計費，預付儲值</h1>
+      <p class="muted">沒有月費也沒有最低消費。儲值後依每個請求的實際 token 扣款，額度 12 個月內有效。所有價格以美元計、未稅。</p></div></div>
+
+    <section style="display:grid;gap:14px">
+      <h2>語言與視覺模型</h2>
+      <div class="tbl-wrap"><table class="num">
+        <thead><tr><th>模型</th><th>上下文</th><th class="r">輸入 / 1M</th><th class="r">快取輸入 / 1M</th><th class="r">輸出 / 1M</th><th class="r">批次 API</th></tr></thead>
+        <tbody>${llm.map(m=>`<tr><td><b>${m.name}</b><span class="sub">${m.quant} · ${m.gpu}</span></td><td>${m.ctx}</td><td class="r mono">${fmtRate(m.in)}</td><td class="r mono">${fmtRate(m.cached)}</td><td class="r mono">${fmtRate(m.out)}</td><td class="r"><span class="tag ok">5 折</span></td></tr>`).join("")}</tbody>
+      </table></div>
+      <p class="muted" style="font-size:.84rem">快取輸入：同一前綴（例如固定的 system prompt）重複出現時，重複部分以半價計算。批次 API 在 24 小時內完成，於離峰時段執行。</p>
+    </section>
+
+    <section class="split" style="align-items:start">
+      <div style="display:grid;gap:14px;min-width:0">
+        <h2>嵌入、重排與語音</h2>
+        <div class="tbl-wrap"><table class="num">
+          <thead><tr><th>模型</th><th>計價單位</th><th class="r">價格</th></tr></thead>
+          <tbody>
+            <tr><td><b>BGE-M3</b><span class="sub">Embedding · 1024 維</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
+            <tr><td><b>BGE-Reranker-v2-M3</b><span class="sub">Rerank</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
+            <tr><td><b>Whisper large-v3-turbo</b><span class="sub">語音轉文字</span></td><td>每分鐘音訊</td><td class="r mono">$0.0015</td></tr>
+          </tbody></table></div>
+      </div>
+      <div style="display:grid;gap:14px;min-width:0">
+        <h2>專屬 H100</h2>
+        <div class="tbl-wrap"><table class="num">
+          <thead><tr><th>方案</th><th>內容</th><th class="r">價格</th></tr></thead>
+          <tbody>
+            <tr><td><b>隨選預約</b><span class="sub">最少 4 小時</span></td><td>整張 H100 80GB</td><td class="r mono">$3.50 / 時</td></tr>
+            <tr><td><b>離峰包</b><span class="sub">平日 22:00–08:00</span></td><td>每月 200 小時</td><td class="r mono">$480 / 月</td></tr>
+            <tr><td><b>LoRA 微調</b><span class="sub">gpt-oss-20b、Qwen3-30B</span></td><td>每 1M 訓練 tokens</td><td class="r mono">$0.60</td></tr>
+          </tbody></table></div>
+        <p class="muted" style="font-size:.84rem">叢集共 2 張 H100，專屬方案一次只開放 1 張，需 Tier 2 以上並提前 24 小時預約。</p>
+      </div>
+    </section>
+
+    <section style="display:grid;gap:14px">
+      <h2>儲值方案</h2>
+      <div class="packs" id="packs">${PACKS.map((p,i)=>`<button type="button" class="panel pack" data-pack="${i}" aria-pressed="${state.pack===i}">
+        <span class="eyebrow">${["入門","開發","團隊","企業"][i]}</span><span class="amt num">${usd(p.amt,0)}</span>
+        <span class="bonus">${p.bonus?`加贈 ${p.bonus}%，實得 ${usd(p.amt*(1+p.bonus/100),2)}`:"無加贈"}</span>
+        <span class="muted" style="font-size:.84rem">約 ${Math.round(p.amt*(1+p.bonus/100)/0.3).toLocaleString()}M tokens（Qwen3，輸入:輸出 = 3:1）</span></button>`).join("")}</div>
+      <div class="row"><a class="btn primary" href="#dashboard" id="buyPack">前往儲值</a><span class="muted" style="font-size:.84rem">支援信用卡、ATM 轉帳與企業月結（需簽約）。</span></div>
+    </section>
+
+    <section style="display:grid;gap:14px">
+      <h2>費用試算</h2>
+      <div class="panel pad calc">
+        <div style="display:grid;gap:14px">
+          <div class="field"><label for="cModel">模型</label><select id="cModel">${llm.map(m=>`<option value="${m.id}">${m.name}</option>`).join("")}</select></div>
+          <div class="field"><label for="cReq">每日請求數 <output id="oReq"></output></label><input id="cReq" type="range" min="100" max="200000" step="100" value="5000"></div>
+          <div class="field"><label for="cIn">每次輸入 tokens <output id="oIn"></output></label><input id="cIn" type="range" min="50" max="16000" step="50" value="1200"></div>
+          <div class="field"><label for="cOut">每次輸出 tokens <output id="oOut"></output></label><input id="cOut" type="range" min="10" max="4000" step="10" value="300"></div>
+          <div class="field"><label for="cCache">可快取的輸入比例 <output id="oCache"></output></label><input id="cCache" type="range" min="0" max="90" step="5" value="40"></div>
+        </div>
+        <div class="calc-out num" id="calcOut"></div>
+      </div>
+    </section>
+
+    <section style="display:grid;gap:14px">
+      <h2>用量等級與速率限制</h2>
+      <div class="tiers">${TIERS.map(t=>`<div class="panel tier"><h3>${t.name}</h3><span class="muted" style="font-size:.84rem">${t.cond}</span>
+        <div class="kv"><span class="muted">每分鐘請求</span><b class="mono">${t.rpm}</b></div>
+        <div class="kv"><span class="muted">每分鐘 tokens</span><b class="mono">${t.tpm}</b></div>
+        <ul>${t.extra.map(e=>`<li>${e}</li>`).join("")}</ul></div>`).join("")}</div>
+    </section>
+  </div>`;
+}
+function renderCalc(){
+  const m = MODELS.find(x=>x.id===$("#cModel").value);
+  const req=+$("#cReq").value, tin=+$("#cIn").value, tout=+$("#cOut").value, cache=+$("#cCache").value/100;
+  $("#oReq").textContent=req.toLocaleString(); $("#oIn").textContent=tin.toLocaleString(); $("#oOut").textContent=tout.toLocaleString(); $("#oCache").textContent=Math.round(cache*100)+"%";
+  const monthIn = req*tin*30, monthOut = req*tout*30;
+  const cIn = monthIn*(1-cache)*m.in/1e6, cCached = monthIn*cache*m.cached/1e6, cOut = monthOut*m.out/1e6;
+  const total = cIn+cCached+cOut;
+  $("#calcOut").innerHTML = `<span class="eyebrow">每月預估（30 天）</span><span class="big">${usd(total)}</span>
+    <span class="muted" style="font-size:.84rem">約 NT$${Math.round(total*32).toLocaleString()}（以 1 USD = 32 TWD 估算）</span>
+    <div class="kv"><span>輸入 ${(monthIn*(1-cache)/1e6).toFixed(1)}M tokens</span><span class="mono">${usd(cIn)}</span></div>
+    <div class="kv"><span>快取輸入 ${(monthIn*cache/1e6).toFixed(1)}M tokens</span><span class="mono">${usd(cCached)}</span></div>
+    <div class="kv"><span>輸出 ${(monthOut/1e6).toFixed(1)}M tokens</span><span class="mono">${usd(cOut)}</span></div>
+    <div class="kv" style="border-top:1px solid var(--line);padding-top:8px"><span>改用批次 API</span><span class="mono">${usd(total/2)}</span></div>`;
+}
+
+/* dashboard */
+const DAYS = 14;
+const USAGE = (()=>{ // deterministic demo series, USD per day per model
+  const out=[]; let s=7;
+  const rnd=()=>{ s=(s*9301+49297)%233280; return s/233280; };
+  for(let d=0; d<DAYS; d++){
+    const wk = [0.6,1,1,1,1,1,0.7][(d+3)%7];
+    out.push({ "gpt-oss-120b": (0.9+rnd()*0.6)*wk*(1+d/30), "qwen3": (0.7+rnd()*0.5)*wk, "gpt-oss-20b": (0.2+rnd()*0.2)*wk, "其他": (0.1+rnd()*0.1)*wk });
+  }
+  return out;
+})();
+const SERIES = [["gpt-oss-120b","var(--d1)"],["qwen3","var(--d2)"],["gpt-oss-20b","var(--d4)"],["其他","var(--d3)"]];
+function usageChart(){
+  const W=720,H=220,pl=44,pr=10,pt=10,pb=26, iw=W-pl-pr, ih=H-pt-pb;
+  const totals = USAGE.map(d=>Object.values(d).reduce((a,b)=>a+b,0));
+  const max = Math.ceil(Math.max(...totals));
+  const bw = iw/DAYS*0.62, gap = iw/DAYS;
+  let g = "";
+  for(let i=0;i<=4;i++){ const v=max*i/4, y=pt+ih-ih*i/4; g+=`<line x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${pl-8}" y="${y+4}" text-anchor="end">$${v.toFixed(1)}</text>`; }
+  USAGE.forEach((d,i)=>{
+    let y = pt+ih; const x = pl+gap*i+(gap-bw)/2;
+    SERIES.forEach(([k,c])=>{ const h=d[k]/max*ih; y-=h; g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="${c}"><title>${k} ${usd(d[k])}</title></rect>`; });
+    if(i%2===0 || i===DAYS-1){ const day = new Date(2026,9,8-(DAYS-1-i)); g+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${day.getMonth()+1}/${day.getDate()}</text>`; }
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="近 14 天每日花費，依模型堆疊">${g}</svg>`;
+}
+function viewDashboard(){
+  const tabs=[["overview","總覽"],["keys","API 金鑰"],["billing","儲值與帳單"],["logs","用量紀錄"]];
+  return `<div class="view">
+    <div class="section-head"><div style="display:grid;gap:8px"><span class="eyebrow">控制台 · gsntest1@amaryllo.us</span><h1>控制台</h1></div>
+      <span class="tag warn">示範資料</span></div>
+    <div class="dash">
+      <div class="dnav" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${state.dashTab===k}">${l}</button>`).join("")}</div>
+      <div id="dashBody" style="display:grid;gap:20px;min-width:0"></div>
+    </div>
+  </div>`;
+}
+function renderDash(){
+  const t = state.dashTab, el = $("#dashBody");
+  document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
+  const monthSpend = USAGE.reduce((a,d)=>a+Object.values(d).reduce((x,y)=>x+y,0),0);
+  if(t==="overview"){
+    const low = state.balance < 5;
+    el.innerHTML = `
+      ${low?`<div class="notice">餘額低於 $5，API 請求在餘額歸零後會回傳 402。<a href="#dashboard" data-goto="billing">立即儲值</a></div>`:""}
+      <div class="stats num">
+        <div class="panel stat"><span>帳戶餘額</span><b>${usd(state.balance)}</b><div class="bar-track"><i style="width:${Math.min(100,state.balance/50*100)}%"></i></div></div>
+        <div class="panel stat"><span>本月花費</span><b>${usd(monthSpend)}</b><span>預估月底 ${usd(monthSpend/14*31)}</span></div>
+        <div class="panel stat"><span>本月請求數</span><b>48,213</b><span>成功率 99.82%</span></div>
+        <div class="panel stat"><span>本月 tokens</span><b>61.4M</b><span>輸入 48.9M · 輸出 12.5M</span></div>
+      </div>
+      <div class="panel pad chart" style="display:grid;gap:12px">
+        <div class="section-head"><h3>近 14 天花費</h3><div class="legend">${SERIES.map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join("")}</div></div>
+        ${usageChart()}
+      </div>
+      <div class="tbl-wrap"><table class="num"><thead><tr><th>模型</th><th class="r">請求數</th><th class="r">輸入 tokens</th><th class="r">輸出 tokens</th><th class="r">費用</th></tr></thead><tbody>
+        <tr><td>gpt-oss-120b</td><td class="r">18,402</td><td class="r">26.1M</td><td class="r">7.9M</td><td class="r mono">${usd(26.1*0.18+7.9*0.72)}</td></tr>
+        <tr><td>Qwen3-30B-A3B-Instruct-2507</td><td class="r">21,877</td><td class="r">19.4M</td><td class="r">3.8M</td><td class="r mono">${usd(19.4*0.15+3.8*0.6)}</td></tr>
+        <tr><td>gpt-oss-20b</td><td class="r">6,551</td><td class="r">3.1M</td><td class="r">0.8M</td><td class="r mono">${usd(3.1*0.07+0.8*0.3)}</td></tr>
+        <tr><td>BGE-M3</td><td class="r">1,383</td><td class="r">0.3M</td><td class="r">—</td><td class="r mono">${usd(0.3*0.02)}</td></tr>
+      </tbody></table></div>`;
+  } else if(t==="keys"){
+    el.innerHTML = `
+      <div class="panel pad" style="display:grid;gap:12px">
+        <h3>建立新金鑰</h3>
+        <form class="row" id="keyForm"><div class="field" style="flex:1;min-width:200px"><label for="keyName">金鑰名稱</label><input id="keyName" placeholder="例如：line-bot-prod" maxlength="40" required></div>
+          <button class="btn primary" type="submit" style="align-self:end">建立金鑰</button></form>
+        <div id="newKey"></div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>名稱</th><th>金鑰</th><th>建立日期</th><th>最後使用</th><th></th></tr></thead>
+        <tbody>${state.keys.length?state.keys.map(k=>`<tr><td><b>${esc(k.name)}</b></td><td class="mono">${k.prefix}</td><td class="num">${k.created}</td><td>${k.last}</td>
+          <td class="r" data-keyrow="${k.id}"><button class="btn sm danger" type="button" data-revoke="${k.id}">撤銷</button></td></tr>`).join("")
+          :`<tr><td colspan="5" class="muted">還沒有金鑰。建立一把就能開始呼叫 API。</td></tr>`}</tbody></table></div>`;
+  } else if(t==="billing"){
+    const p = PACKS[state.pack], got = p.amt*(1+p.bonus/100);
+    el.innerHTML = `
+      <div class="panel pad" style="display:grid;gap:16px">
+        <div class="section-head"><h3>儲值</h3><span class="muted num">目前餘額 <b class="mono">${usd(state.balance)}</b></span></div>
+        <div class="packs" id="packs">${PACKS.map((x,i)=>`<button type="button" class="panel pack" data-pack="${i}" aria-pressed="${state.pack===i}"><span class="amt num">${usd(x.amt,0)}</span><span class="bonus">${x.bonus?`加贈 ${x.bonus}%`:"無加贈"}</span></button>`).join("")}</div>
+        <form id="payForm" style="display:grid;gap:12px">
+          <div class="row" style="align-items:end">
+            <div class="field" style="flex:2;min-width:200px"><label for="payMethod">付款方式</label><select id="payMethod"><option>信用卡（綠界 ECPay）</option><option>ATM 虛擬帳號</option><option>企業月結</option></select></div>
+            <div class="field" style="flex:1;min-width:140px"><label for="payTax">統一編號（選填）</label><input id="payTax" inputmode="numeric" maxlength="8" placeholder="12345678"></div>
+          </div>
+          <div class="kv num"><span>付款金額</span><b class="mono">${usd(p.amt)}</b></div>
+          <div class="kv num"><span>入帳額度</span><b class="mono">${usd(got)}</b></div>
+          <div id="payConfirm"></div>
+          <div class="row"><button class="btn primary" type="submit">確認付款 ${usd(p.amt,0)}</button><span class="muted" style="font-size:.82rem">示範模式：不會真的扣款，額度會直接加入。</span></div>
+        </form>
+      </div>
+      <div class="panel pad" style="display:grid;gap:10px">
+        <h3>餘額提醒</h3>
+        <label class="row" style="gap:8px"><input type="checkbox" id="alertOn" checked> 餘額低於 <input id="alertAmt" type="number" min="1" value="5" style="width:80px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)"> 美元時寄信通知</label>
+        <label class="row" style="gap:8px"><input type="checkbox" id="autoTop"> 自動儲值 $50（需綁定信用卡）</label>
+      </div>
+      <div class="tbl-wrap"><table class="num"><thead><tr><th>日期</th><th>項目</th><th class="r">金額</th><th>狀態</th></tr></thead><tbody id="invoices">
+        <tr><td>2026-09-28</td><td>儲值 $50（加贈 5%）</td><td class="r mono">$50.00</td><td><span class="tag ok">已入帳</span></td></tr>
+        <tr><td>2026-09-12</td><td>儲值 $10</td><td class="r mono">$10.00</td><td><span class="tag ok">已入帳</span></td></tr>
+        <tr><td>2026-09-12</td><td>註冊試用額度</td><td class="r mono">$1.00</td><td><span class="tag">贈送</span></td></tr>
+      </tbody></table></div>`;
+  } else {
+    const rows = [
+      ["14:32:07","production-chatbot","qwen3-30b-a3b-instruct-2507",812,164,"0.41s",200],
+      ["14:31:55","production-chatbot","gpt-oss-120b",2210,640,"3.92s",200],
+      ["14:31:40","rag-indexer","bge-m3",7944,0,"0.18s",200],
+      ["14:30:12","production-chatbot","gpt-oss-120b",1580,0,"0.05s",429],
+      ["14:29:48","production-chatbot","gpt-oss-20b",420,38,"0.22s",200],
+      ["14:28:03","rag-indexer","bge-reranker-v2-m3",5120,0,"0.09s",200]];
+    el.innerHTML = `<div class="tbl-wrap"><table class="num"><thead><tr><th>時間</th><th>金鑰</th><th>模型</th><th class="r">輸入</th><th class="r">輸出</th><th class="r">耗時</th><th>狀態</th><th class="r">費用</th></tr></thead><tbody>
+      ${rows.map(r=>{ const m=MODELS.find(x=>x.id===r[2]); const c=r[6]===200?(r[3]*m.in+r[4]*(m.out||0))/1e6:0;
+        return `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="r">${r[3].toLocaleString()}</td><td class="r">${r[4].toLocaleString()}</td><td class="r">${r[5]}</td>
+        <td>${r[6]===200?'<span class="tag ok">200</span>':'<span class="tag warn">429 超出速率</span>'}</td><td class="r mono">${usd(c,6)}</td></tr>`;}).join("")}
+      </tbody></table></div><p class="muted" style="font-size:.84rem">失敗的請求（4xx / 5xx）不計費。用量紀錄保留 90 天，可匯出 CSV。</p>`;
+  }
+}
+
+function viewDocs(){
+  return `<div class="view">
+    <div class="section-head"><div style="display:grid;gap:8px"><span class="eyebrow">文件</span><h1>快速開始</h1></div></div>
+    <div class="docs">
+      <nav class="dnav" aria-label="文件目錄"><a class="btn ghost sm" href="#docs">1. 取得金鑰</a><a class="btn ghost sm" href="#docs">2. 呼叫 API</a><a class="btn ghost sm" href="#docs">3. 端點與參數</a><a class="btn ghost sm" href="#docs">4. 錯誤碼</a></nav>
+      <article>
+        <h2>1. 取得 API 金鑰</h2>
+        <p>到 <a href="#dashboard">控制台 → API 金鑰</a> 建立金鑰。金鑰只會顯示一次，請存在環境變數 <span class="mono">GSN_API_KEY</span>，不要寫進前端程式碼。</p>
+        <h2>2. 呼叫 API</h2>
+        <p>Base URL 為 <span class="mono">https://api.gsnshop.amaryllo.us/v1</span>，可直接使用官方 OpenAI SDK。</p>
+        ${codeBlock("docs","qwen3-30b-a3b-instruct-2507")}
+        <h2>3. 端點</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>端點</th><th>用途</th><th>可用模型</th></tr></thead><tbody>
+          <tr><td class="mono">POST /v1/chat/completions</td><td>對話、工具呼叫、圖片理解</td><td>gpt-oss-120b、gpt-oss-20b、Qwen3-30B、Qwen2.5-VL</td></tr>
+          <tr><td class="mono">POST /v1/embeddings</td><td>向量嵌入</td><td>bge-m3</td></tr>
+          <tr><td class="mono">POST /v1/rerank</td><td>重排序</td><td>bge-reranker-v2-m3</td></tr>
+          <tr><td class="mono">POST /v1/audio/transcriptions</td><td>語音轉文字</td><td>whisper-large-v3-turbo</td></tr>
+          <tr><td class="mono">POST /v1/batches</td><td>批次任務（5 折）</td><td>所有語言模型</td></tr>
+          <tr><td class="mono">GET /v1/models</td><td>列出模型</td><td>—</td></tr>
+        </tbody></table></div>
+        <h2>4. 錯誤碼</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>狀態碼</th><th>原因</th><th>處理方式</th></tr></thead><tbody>
+          <tr><td class="mono">401</td><td>金鑰錯誤或已撤銷</td><td>到控制台確認金鑰</td></tr>
+          <tr><td class="mono">402</td><td>餘額不足</td><td>儲值後重試</td></tr>
+          <tr><td class="mono">429</td><td>超出每分鐘請求或 token 上限</td><td>依 Retry-After 標頭稍後重試，或升級等級</td></tr>
+          <tr><td class="mono">503</td><td>GPU 滿載</td><td>指數退避重試，或改用批次 API</td></tr>
+        </tbody></table></div>
+      </article>
+    </div>
+  </div>`;
+}
+
+/* ---------- router ---------- */
+const ROUTES = {home:viewHome, models:viewModels, playground:viewPlayground, pricing:viewPricing, dashboard:viewDashboard, docs:viewDocs};
+function updateBal(){ $("#balChip").innerHTML = `<i>餘額 </i>${usd(state.balance)}`; }
+function route(){
+  const r = (location.hash||"#home").slice(1);
+  const name = ROUTES[r] ? r : "home";
+  // swap in a fresh container so listeners from the previous view don't pile up
+  const app = $("#app").cloneNode(false);
+  $("#app").replaceWith(app);
+  app.innerHTML = ROUTES[name]();
+  document.querySelectorAll("#nav a").forEach(a=>{ if(a.getAttribute("href")!=="#"+name) a.removeAttribute("aria-current"); else a.setAttribute("aria-current","page"); });
+  wireCode(app);
+  if(name==="models") wireModels();
+  if(name==="playground") wirePg();
+  if(name==="pricing") wirePricing();
+  if(name==="dashboard") wireDash();
+  window.scrollTo(0,0);
+}
+function pickModelFromCard(e){
+  const card = e.target.closest("[data-model]"); if(!card) return;
+  const m = MODELS.find(x=>x.id===card.dataset.model);
+  if(m && (m.type==="llm"||m.type==="vision")) state.pg.model = m.id;
+}
+function wireModels(){
+  renderModelGrid();
+  $("#app").addEventListener("click", e=>{
+    const c = e.target.closest("[data-filter]");
+    if(c){ state.filter=c.dataset.filter; document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed", x===c)); renderModelGrid(); }
+  });
+  $("#modelSearch").addEventListener("input", e=>{ state.q=e.target.value; renderModelGrid(); });
+}
+function wirePg(){
+  renderPg();
+  const input = $("#pgInput");
+  const est = () => $("#pgEst").textContent = `約 ${tokens(input.value)} tokens`;
+  input.addEventListener("input", est);
+  input.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); $("#compose").requestSubmit(); } });
+  $("#compose").addEventListener("submit", e=>{ e.preventDefault(); const v=input.value; input.value=""; est(); sendPg(v); });
+  $("#suggest").addEventListener("click", e=>{ const b=e.target.closest("button"); if(b) sendPg(b.textContent); });
+  $("#pgModel").addEventListener("change", e=>{ state.pg.model=e.target.value; renderPg(); });
+  $("#pgSys").addEventListener("input", e=>state.pg.sys=e.target.value);
+  [["pgTemp","oTemp","temp"],["pgTopP","oTopP","topP"],["pgMax","oMax","max"]].forEach(([i,o,k])=>$("#"+i).addEventListener("input", e=>{ state.pg[k]=+e.target.value; $("#"+o).textContent=e.target.value; }));
+  $("#pgClear").addEventListener("click", ()=>{ if(state.pg.busy) return; state.pg.msgs=[]; state.pg.spent=0; renderPg(); });
+}
+function wirePricing(){
+  ["cModel","cReq","cIn","cOut","cCache"].forEach(id=>$("#"+id).addEventListener("input", renderCalc));
+  renderCalc();
+  $("#packs").addEventListener("click", e=>{ const b=e.target.closest("[data-pack]"); if(!b) return; state.pack=+b.dataset.pack; document.querySelectorAll("[data-pack]").forEach(x=>x.setAttribute("aria-pressed", x===b)); });
+  $("#buyPack").addEventListener("click", ()=>{ state.dashTab="billing"; });
+}
+function wireDash(){
+  renderDash();
+  const app = $("#app");
+  app.addEventListener("click", e=>{
+    const tab = e.target.closest("[data-tab]");
+    if(tab){ state.dashTab=tab.dataset.tab; renderDash(); return; }
+    const go = e.target.closest("[data-goto]");
+    if(go){ e.preventDefault(); state.dashTab=go.dataset.goto; renderDash(); return; }
+    const pk = e.target.closest("[data-pack]");
+    if(pk){ state.pack=+pk.dataset.pack; renderDash(); return; }
+    const rv = e.target.closest("[data-revoke]");
+    if(rv){ const cell = rv.parentElement; cell.innerHTML = `<span class="muted" style="font-size:.82rem">確定撤銷？</span> <button class="btn sm danger" type="button" data-confirm="${rv.dataset.revoke}">撤銷</button> <button class="btn sm" type="button" data-cancel>取消</button>`; return; }
+    const cf = e.target.closest("[data-confirm]");
+    if(cf){ state.keys = state.keys.filter(k=>k.id!==cf.dataset.confirm); save(); renderDash(); toast("金鑰已撤銷，使用它的請求會回傳 401"); return; }
+    if(e.target.closest("[data-cancel]")){ renderDash(); return; }
+    const cp = e.target.closest("[data-copykey]");
+    if(cp){ copy(cp.dataset.copykey); }
+  });
+  app.addEventListener("submit", e=>{
+    if(e.target.id==="keyForm"){
+      e.preventDefault();
+      const name = $("#keyName").value.trim(); if(!name) return;
+      const hex = () => Array.from({length:32},()=>"0123456789abcdef"[Math.floor(Math.random()*16)]).join("");
+      const full = "gsn-sk-" + hex() + hex().slice(0,16);
+      state.keys.unshift({id:"k"+Date.now(), name, prefix: full.slice(0,11)+"…"+full.slice(-4), created:"2026-10-08", last:"尚未使用"});
+      save(); renderDash();
+      $("#newKey").innerHTML = `<div class="notice" style="display:grid;gap:8px"><b>請立即複製金鑰，關閉後將無法再次查看。</b><div class="keybox">${full}</div><div><button class="btn sm" type="button" data-copykey="${full}">複製金鑰</button></div></div>`;
+    }
+    if(e.target.id==="payForm"){
+      e.preventDefault();
+      const p = PACKS[state.pack], got = p.amt*(1+p.bonus/100);
+      state.balance += got; save(); updateBal();
+      const row = `<tr><td>2026-10-08</td><td>儲值 ${usd(p.amt,0)}${p.bonus?`（加贈 ${p.bonus}%）`:""}</td><td class="r mono">${usd(p.amt)}</td><td><span class="tag ok">已入帳</span></td></tr>`;
+      renderDash(); $("#invoices").insertAdjacentHTML("afterbegin", row);
+      toast(`已入帳 ${usd(got)}，目前餘額 ${usd(state.balance)}`);
+    }
+  });
+}
+document.addEventListener("click", pickModelFromCard);
+$("#themeBtn").addEventListener("click", ()=>{
+  const root=document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+});
+window.addEventListener("hashchange", route);
+updateBal(); route();
+</script>
+</body>
+</html>
