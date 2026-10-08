@@ -16,6 +16,9 @@ const API = {
   login: '/api/login',
   files: '/api/files',            // POST 上傳 / GET 列表
   download: (id) => `/api/files/${id}/download`,
+  folders: '/api/folders',        // POST 建立資料夾
+  move: (id) => `/api/files/${id}/move`,   // POST {folder_id} 移動檔案
+  remove: (id) => `/api/files/${id}`,      // DELETE 刪除檔案
   videos: '/api/videos',
   videoStream: (id) => `/api/videos/${id}/stream`,
   photos: '/api/photos',          // POST 上傳 / GET 列表
@@ -28,6 +31,8 @@ const uploadSmall = new Trend('upload_1mb_ms', true);
 const uploadMid = new Trend('upload_50mb_ms', true);
 const uploadLarge = new Trend('upload_500mb_ms', true);
 const downloadTime = new Trend('download_ms', true);
+const moveTime = new Trend('move_file_ms', true);
+const deleteTime = new Trend('delete_file_ms', true);
 const videoRange = new Trend('video_range_ttfb_ms', true);
 const thumbLoad = new Trend('thumbnail_load_ms', true);
 const thumbReady = new Trend('photo_upload_to_thumb_ms', true);
@@ -73,6 +78,8 @@ export const options = {
     video_range_ttfb_ms: ['p(95)<1000'],
     thumbnail_load_ms: ['p(95)<300'],
     photo_upload_to_thumb_ms: ['p(95)<10000'],
+    move_file_ms: ['p(95)<500'],
+    delete_file_ms: ['p(95)<500'],
     integrity_failures: ['count==0'],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],
@@ -113,6 +120,35 @@ function downloadAndVerify(id, expectedSha) {
   if (expectedSha && crypto.sha256(r.body, 'hex') !== expectedSha) integrityFail.add(1); // TC-11
 }
 
+// 移動檔案:每個 user 第一次使用時先建立自己的目標資料夾
+let targetFolder;
+function moveFile(id) {
+  if (!targetFolder) {
+    const f = http.post(`${BASE_URL}${API.folders}`, JSON.stringify({ name: `dest_${__VU}` }),
+      A({ headers: { ...auth.headers, 'Content-Type': 'application/json' }, tags: { kind: 'api', name: 'create_folder' } }));
+    if (f.status >= 200 && f.status < 300) targetFolder = f.json('id');
+  }
+  const r = http.post(`${BASE_URL}${API.move(id)}`, JSON.stringify({ folder_id: targetFolder }),
+    A({ headers: { ...auth.headers, 'Content-Type': 'application/json' }, tags: { kind: 'api', name: 'move_file' } }));
+  const ok = check(r, { 'move 2xx': (x) => x.status >= 200 && x.status < 300 });
+  errRate.add(!ok);
+  if (ok) moveTime.add(r.timings.duration);
+  // 驗證:移動後檔案仍可下載、內容不變(僅確認可取得)
+  const g = http.get(`${BASE_URL}${API.download(id)}`, A({ responseType: 'none', tags: { kind: 'transfer', name: 'download_after_move' } }));
+  errRate.add(g.status !== 200);
+}
+
+// 刪除檔案,並確認刪除後已經下載不到
+function deleteFile(id) {
+  const r = http.del(`${BASE_URL}${API.remove(id)}`, null, A({ tags: { kind: 'api', name: 'delete_file' } }));
+  const ok = check(r, { 'delete 2xx': (x) => x.status >= 200 && x.status < 300 });
+  errRate.add(!ok);
+  if (ok) deleteTime.add(r.timings.duration);
+  const g = http.get(`${BASE_URL}${API.download(id)}`, A({ responseType: 'none', tags: { kind: 'transfer', name: 'download_after_delete' } }));
+  const gone = check(g, { 'deleted file returns 404': (x) => x.status === 404 || x.status === 410 });
+  errRate.add(!gone);
+}
+
 // ---- 角色 1:一般檔案使用者 ----
 export function fileUser() {
   if (!auth) auth = login();
@@ -126,7 +162,11 @@ export function fileUser() {
     else if (BIN_500MB) { buf = BIN_500MB; trend = uploadLarge; label = 'upload_500mb'; }
     else { buf = BIN_50MB; trend = uploadMid; label = 'upload_50mb'; }
     id = upload(buf, `f_${__VU}_${__ITER}.bin`, trend, label);
-    if (id) downloadAndVerify(id, crypto.sha256(buf, 'hex'));
+    if (id) {
+      downloadAndVerify(id, crypto.sha256(buf, 'hex'));
+      moveFile(id);
+      deleteFile(id);
+    }
   });
   sleep(randomIntBetween(1, 3));
 }
