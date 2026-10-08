@@ -5,16 +5,24 @@
 - `index.html`：單一檔案、免建置的前端原型。直接用瀏覽器開啟即可。
 - `MODEL_PRICING_PLAN.md`：2× H100 + 1× RTX 5090 的模型配置、模型與機器適用表、價格、儲值方案與損益估算。
 
-## 頁面
+## 頁面與流程
+
+介面沿用 gsnshop 現有的設計（深色主題、左側選單、表格＋購物車），AI 服務以「AI Inference」群組加在原有選單下方，與 Reserve Instances 共用同一個購物車。
 
 | 路由 | 內容 |
 |---|---|
-| `#home` | 首頁：主視覺、叢集 GPU 記憶體配置、精選模型、OpenAI 相容範例程式碼 |
-| `#models` | 模型庫：H100 / RTX 5090 機器規格、依類型或機器篩選、每個模型標示適用機器 |
-| `#playground` | 對話測試、參數調整、每則回覆顯示 token 數與費用 |
-| `#pricing` | 價格表、儲值方案、費用試算、速率等級 |
-| `#dashboard` | 控制台：餘額與用量圖、API 金鑰管理、儲值與帳單、用量紀錄 |
-| `#docs` | 快速開始、端點、錯誤碼 |
+| `#reserve` | Reserve Instances（現有頁面的重現，可加入購物車） |
+| `#vms` | Access VMs（現有頁面的佔位） |
+| `#orders` | Order Summary：主機與 AI Credits 訂單 |
+| `#models` | AI Models：H100 / RTX 5090 機器規格、依類型或機器篩選、每個模型的適用機器與價格 |
+| `#credits` | Buy Credits：儲值方案表，One-time / Monthly 切換，加入購物車 |
+| `#cart` | Cart：數量調整、Summary、Continue → 付款；超過 $3,000 改走匯款 |
+| `#playground` | 對話測試，每則回覆顯示 token 數、費用與服務機器 |
+| `#keys` | API Keys：建立、撤銷、快速開始程式碼、端點列表 |
+| `#usage` | Usage：餘額、14 天花費圖、請求紀錄 |
+
+購買流程：Buy Credits → 購物車圖示 → Cart → Continue → 付款 → Order Summary（額度即時入帳）。
+金額超過 $3,000 時，與現有網站相同，按 Continue 後建立待匯款訂單，由業務以 Email 提供匯款資訊。
 
 ## 目前是模擬的部分
 
@@ -24,8 +32,7 @@
 
 ## 換成 gsnshop 的品牌風格
 
-所有顏色與字體都定義在 `index.html` 最上方的 `:root` 變數。改 `--accent`、`--font-*` 等 token 即可套用現有網站的色系，
-或把 `<header>` 換成 gsnshop 現有的導覽列。
+顏色與字體都定義在 `index.html` 最上方的 `:root` 變數，已依現有網站截圖調整。實際整合時可直接沿用 gsnshop 的頂部列與側邊欄元件，只需加入 AI Inference 群組的選單項目。
 
 ## 接上後端
 
