@@ -3,14 +3,14 @@
 這是 gsnshop.amaryllo.us 擴充的 AI token 銷售介面原型，參考 fireworks.ai 的產品結構。
 
 - `index.html`：單一檔案、免建置的前端原型。直接用瀏覽器開啟即可。
-- `MODEL_PRICING_PLAN.md`：2× H100 的模型配置、價格、儲值方案與損益估算。
+- `MODEL_PRICING_PLAN.md`：2× H100 + 1× RTX 5090 的模型配置、模型與機器適用表、價格、儲值方案與損益估算。
 
 ## 頁面
 
 | 路由 | 內容 |
 |---|---|
 | `#home` | 首頁：主視覺、叢集 GPU 記憶體配置、精選模型、OpenAI 相容範例程式碼 |
-| `#models` | 模型庫：依類型篩選、搜尋 |
+| `#models` | 模型庫：H100 / RTX 5090 機器規格、依類型或機器篩選、每個模型標示適用機器 |
 | `#playground` | 對話測試、參數調整、每則回覆顯示 token 數與費用 |
 | `#pricing` | 價格表、儲值方案、費用試算、速率等級 |
 | `#dashboard` | 控制台：餘額與用量圖、API 金鑰管理、儲值與帳單、用量紀錄 |

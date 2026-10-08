@@ -124,6 +124,15 @@ p{margin:0}
 .mprice{display:flex;gap:18px;border-top:1px dashed var(--line);padding-top:10px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
 .mprice b{display:block;color:var(--ink);font:600 .95rem var(--font-mono)}
 .tags{display:flex;gap:6px;flex-wrap:wrap}
+.mach-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--muted)}
+.mach-row > span:first-child{margin-right:2px}
+.mach{font:500 .72rem var(--font-mono);padding:2px 8px;border-radius:4px;border:1px solid var(--line);color:var(--ink);white-space:nowrap}
+.mach.live{border-color:color-mix(in srgb,var(--ok) 60%,transparent);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent)}
+.mach.no{color:var(--muted);text-decoration:line-through;opacity:.65}
+.machines{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.machine{padding:18px;display:grid;gap:10px;align-content:start}
+.machine dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:.86rem}
+.machine dt{color:var(--muted)} .machine dd{margin:0}
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .chip{border:1px solid var(--line);background:var(--surface);padding:5px 14px;border-radius:999px;cursor:pointer;font-size:.88rem}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -219,6 +228,7 @@ td .sub{display:block;font-size:.76rem;color:var(--muted)}
 @media (max-width:960px){
   .hero,.split,.calc{grid-template-columns:1fr}
   .packs,.tiers,.stats{grid-template-columns:repeat(2,1fr)}
+  .machines{grid-template-columns:1fr}
   .pg,.dash,.docs{grid-template-columns:1fr}
   .dnav{position:static;display:flex;overflow-x:auto}
   .dnav button{white-space:nowrap}
@@ -262,7 +272,7 @@ td .sub{display:block;font-size:.76rem;color:var(--muted)}
 <footer class="foot">
   <div class="foot-in">
     <span>GSN Shop · AI 推論服務（示範介面，金流與 API 為模擬）</span>
-    <span>OpenAI 相容 API · 運行於自有 2× NVIDIA H100 80GB</span>
+    <span>OpenAI 相容 API · 運行於自有 2× H100 80GB + 1× RTX 5090 32GB</span>
   </div>
 </footer>
 
@@ -274,41 +284,47 @@ td .sub{display:block;font-size:.76rem;color:var(--muted)}
 const MODELS = [
   {id:"gpt-oss-120b", name:"gpt-oss-120b", org:"OpenAI · Apache-2.0", type:"llm", color:"var(--d1)", logo:"OA",
    desc:"117B 參數 MoE（每 token 啟用 5.1B），推理、工具呼叫、長文分析的旗艦模型。",
-   ctx:"128K", in:0.18, cached:0.09, out:0.72, speed:160, gpu:"GPU 0", quant:"MXFP4",
+   ctx:"128K", in:0.18, cached:0.09, out:0.72, speed:160, gpu:"H100 #0", quant:"MXFP4", run:{h100:"live", r5090:"no"},
    tags:["推理","Function calling","旗艦"], hot:true},
   {id:"qwen3-30b-a3b-instruct-2507", name:"Qwen3-30B-A3B-Instruct-2507", org:"Alibaba Qwen · Apache-2.0", type:"llm", color:"var(--d2)", logo:"QW",
    desc:"30B MoE（啟用 3B），繁中與多語能力佳，適合客服、摘要、RAG 問答。",
-   ctx:"64K", in:0.15, cached:0.075, out:0.60, speed:190, gpu:"GPU 1", quant:"FP8",
+   ctx:"128K", in:0.15, cached:0.075, out:0.60, speed:190, gpu:"H100 #1", quant:"FP8", run:{h100:"live", r5090:"no"},
    tags:["繁體中文","RAG","高 CP 值"], hot:true},
   {id:"gpt-oss-20b", name:"gpt-oss-20b", org:"OpenAI · Apache-2.0", type:"llm", color:"var(--d1)", logo:"OA",
    desc:"21B MoE（啟用 3.6B），延遲最低、單價最便宜，適合分類、抽取與 Agent 子任務。",
-   ctx:"32K", in:0.07, cached:0.035, out:0.30, speed:240, gpu:"GPU 1", quant:"MXFP4",
+   ctx:"32K", in:0.07, cached:0.035, out:0.30, speed:240, gpu:"RTX 5090", quant:"MXFP4", run:{h100:"ok", r5090:"live"},
    tags:["低延遲","最便宜"]},
   {id:"qwen2.5-vl-7b-instruct", name:"Qwen2.5-VL-7B-Instruct", org:"Alibaba Qwen · Apache-2.0", type:"vision", color:"var(--d5)", logo:"VL",
    desc:"圖片理解、OCR、表單與發票辨識。圖片依解析度換算為輸入 token。",
-   ctx:"32K", in:0.20, cached:0.10, out:0.20, speed:150, gpu:"GPU 1", quant:"AWQ 4-bit",
+   ctx:"32K", in:0.20, cached:0.10, out:0.20, speed:150, gpu:"H100 #1", quant:"FP8", run:{h100:"live", r5090:"ok"},
    tags:["視覺","OCR"]},
   {id:"bge-m3", name:"BGE-M3", org:"BAAI · MIT", type:"embed", color:"var(--d3)", logo:"EM",
    desc:"多語向量嵌入（1024 維，最長 8K），中英混合檢索表現穩定。",
-   ctx:"8K", in:0.02, out:null, gpu:"GPU 1", quant:"FP16", tags:["Embedding","多語"]},
+   ctx:"8K", in:0.02, out:null, gpu:"RTX 5090", quant:"FP16", run:{h100:"ok", r5090:"live"}, tags:["Embedding","多語"]},
   {id:"bge-reranker-v2-m3", name:"BGE-Reranker-v2-M3", org:"BAAI · Apache-2.0", type:"embed", color:"var(--d3)", logo:"RR",
    desc:"重排序模型，搭配向量檢索把最相關的段落排到前面，提升 RAG 準確度。",
-   ctx:"8K", in:0.02, out:null, gpu:"GPU 1", quant:"FP16", tags:["Rerank"]},
+   ctx:"8K", in:0.02, out:null, gpu:"RTX 5090", quant:"FP16", run:{h100:"ok", r5090:"live"}, tags:["Rerank"]},
   {id:"whisper-large-v3-turbo", name:"Whisper large-v3-turbo", org:"OpenAI · MIT", type:"audio", color:"var(--d4)", logo:"WH",
    desc:"語音轉文字，支援中文、台語口音中文與英文，輸出含時間軸字幕。",
-   unit:"min", perMin:0.0015, gpu:"GPU 0", quant:"FP16", tags:["語音轉文字","字幕"]}
+   unit:"min", perMin:0.0015, gpu:"RTX 5090", quant:"FP16", run:{h100:"ok", r5090:"live"}, tags:["語音轉文字","字幕"]}
 ];
 const TYPE_LABEL = {llm:"語言模型", vision:"視覺", embed:"嵌入 / 重排", audio:"語音"};
+const MACHINES = {
+  h100:{short:"H100", name:"H100 伺服器", count:"2 張", spec:"NVIDIA H100 SXM 80GB", mem:"80 GB HBM3 · 3.35 TB/s", fp:"FP8 / MXFP4", fit:"70B 以上、MoE 大模型、長上下文、高並發"},
+  r5090:{short:"RTX 5090", name:"RTX 5090 伺服器", count:"1 張", spec:"NVIDIA GeForce RTX 5090 32GB", mem:"32 GB GDDR7 · 1.79 TB/s", fp:"FP8 / FP4", fit:"20B 以下模型、Embedding、Rerank、語音"}
+};
+const RUN_LABEL = {live:"運行中", ok:"可支援", no:"不適用"};
 const GPUS = [
-  {name:"GPU 0 · H100 SXM 80GB", util:71, temp:63, power:548, parts:[
+  {name:"H100 #0 · H100 SXM 80GB", cap:80, util:71, temp:63, power:548, parts:[
     {label:"gpt-oss-120b 權重", gb:61, c:"var(--d1)"},
-    {label:"KV cache", gb:11, c:"color-mix(in srgb,var(--d1) 45%,transparent)"},
-    {label:"Whisper turbo", gb:3, c:"var(--d4)"}]},
-  {name:"GPU 1 · H100 SXM 80GB", util:58, temp:59, power:472, parts:[
-    {label:"Qwen3-30B-A3B", gb:40, c:"var(--d2)"},
-    {label:"gpt-oss-20b", gb:20, c:"color-mix(in srgb,var(--d1) 70%,var(--d2))"},
-    {label:"Qwen2.5-VL-7B", gb:10, c:"var(--d5)"},
-    {label:"BGE ×2", gb:4, c:"var(--d3)"}]}
+    {label:"KV cache", gb:13, c:"color-mix(in srgb,var(--d1) 45%,transparent)"}]},
+  {name:"H100 #1 · H100 SXM 80GB", cap:80, util:58, temp:59, power:472, parts:[
+    {label:"Qwen3-30B-A3B", gb:52, c:"var(--d2)"},
+    {label:"Qwen2.5-VL-7B", gb:16, c:"var(--d5)"}]},
+  {name:"RTX 5090 · GeForce 32GB", cap:32, util:46, temp:66, power:410, parts:[
+    {label:"gpt-oss-20b", gb:19, c:"color-mix(in srgb,var(--d1) 70%,var(--d2))"},
+    {label:"BGE ×2", gb:4, c:"var(--d3)"},
+    {label:"Whisper turbo", gb:3, c:"var(--d4)"}]}
 ];
 const PACKS = [
   {amt:10, bonus:0}, {amt:50, bonus:5}, {amt:200, bonus:10}, {amt:1000, bonus:15}
@@ -334,7 +350,7 @@ const state = {
   pg: {model:"qwen3-30b-a3b-instruct-2507", msgs:[], temp:0.7, max:1024, topP:0.95, sys:"你是 GSN 的客服助理，請用繁體中文簡潔回答。", spent:0},
   dashTab: "overview",
   pack: 1,
-  filter: "all", q: ""
+  filter: "all", machine: "all", q: ""
 };
 function save(){ store.set("balance", state.balance); store.set("keys", state.keys); }
 
@@ -355,6 +371,9 @@ function priceLine(m){
   if(m.out==null) return `<div><span>每 1M token</span><b>${fmtRate(m.in)}</b></div><div><span>上下文</span><b>${m.ctx}</b></div>`;
   return `<div><span>輸入 / 1M</span><b>${fmtRate(m.in)}</b></div><div><span>輸出 / 1M</span><b>${fmtRate(m.out)}</b></div><div><span>上下文</span><b>${m.ctx}</b></div>`;
 }
+function machChips(m){
+  return Object.keys(MACHINES).map(k=>`<span class="mach ${m.run[k]}" title="${MACHINES[k].name}：${RUN_LABEL[m.run[k]]}">${MACHINES[k].short} · ${RUN_LABEL[m.run[k]]}</span>`).join("");
+}
 function modelCard(m){
   const href = (m.type==="llm"||m.type==="vision") ? `#playground` : `#docs`;
   return `<a class="panel mcard" href="${href}" data-model="${m.id}">
@@ -362,6 +381,7 @@ function modelCard(m){
       <div style="min-width:0"><h3>${esc(m.name)}</h3><div class="org">${esc(m.org)}</div></div></div>
     <p class="desc">${esc(m.desc)}</p>
     <div class="tags"><span class="tag">${TYPE_LABEL[m.type]}</span>${m.tags.map(t=>`<span class="tag${m.hot&&t===m.tags[0]?' hot':''}">${esc(t)}</span>`).join("")}</div>
+    <div class="mach-row"><span>適用機器</span>${machChips(m)}</div>
     <div class="mprice num">${priceLine(m)}</div>
   </a>`;
 }
@@ -427,8 +447,8 @@ function viewHome(){
   const gpuHtml = GPUS.map(g=>{
     const used = g.parts.reduce((a,p)=>a+p.gb,0);
     return `<div class="gpu">
-      <div class="gpu-top"><b>${g.name}</b><span class="mono muted">${used} / 80 GB</span></div>
-      <div class="vram" role="img" aria-label="${g.name} 記憶體配置">${g.parts.map(p=>`<span title="${p.label} ${p.gb}GB" style="width:${p.gb/80*100}%;background:${p.c}"></span>`).join("")}</div>
+      <div class="gpu-top"><b>${g.name}</b><span class="mono muted">${used} / ${g.cap} GB</span></div>
+      <div class="vram" role="img" aria-label="${g.name} 記憶體配置">${g.parts.map(p=>`<span title="${p.label} ${p.gb}GB" style="width:${p.gb/g.cap*100}%;background:${p.c}"></span>`).join("")}</div>
       <div class="legend">${g.parts.map(p=>`<span><i style="background:${p.c}"></i>${p.label} ${p.gb}GB</span>`).join("")}</div>
       <div class="gpu-meter num"><span>使用率<b>${g.util}%</b></span><span>溫度<b>${g.temp}°C</b></span><span>功耗<b>${g.power} W</b></span></div>
     </div>`;}).join("");
@@ -437,7 +457,7 @@ function viewHome(){
       <div class="hero-copy">
         <span class="eyebrow">GSN Shop · AI 推論服務</span>
         <h1>開源模型 API<br>按 token 計費</h1>
-        <p class="lead">gpt-oss、Qwen3、Whisper 與 BGE 都跑在我們自己的 H100 上。介面與 OpenAI 相容，換一行 base_url 就能上線。資料不離開自有機房，也不拿來訓練模型。用多少付多少，沒有月費。</p>
+        <p class="lead">gpt-oss、Qwen3、Whisper 與 BGE 都跑在我們自己的 H100 與 RTX 5090 伺服器上。介面與 OpenAI 相容，換一行 base_url 就能上線。資料不離開自有機房，也不拿來訓練模型。用多少付多少，沒有月費。</p>
         <div class="row"><a class="btn primary" href="#dashboard">領取 $1 試用額度</a><a class="btn" href="#playground">先試玩 Playground</a></div>
         <div class="hero-stats num">
           <div><b>$0.07</b><span>每 1M 輸入 token 起</span></div>
@@ -448,7 +468,7 @@ function viewHome(){
       <div class="panel cluster">
         <div class="cluster-head"><h3>叢集即時狀態</h3><span class="tag ok"><span class="dot"></span>全部正常</span></div>
         ${gpuHtml}
-        <p class="muted" style="font-size:.78rem">示範數據。每張 H100 預留約 8% 記憶體給 CUDA 與執行環境。</p>
+        <p class="muted" style="font-size:.78rem">示範數據。每張卡預留約 8% 記憶體給 CUDA 與執行環境。</p>
       </div>
     </section>
 
@@ -480,10 +500,15 @@ function viewModels(){
   return `<div class="view">
     <div class="section-head">
       <div style="display:grid;gap:8px"><span class="eyebrow">模型庫</span><h1>模型</h1>
-      <p class="muted">所有 Serverless 模型常駐在 GPU 上，沒有冷啟動。價格以美元計，依實際用量從儲值餘額扣款。</p></div>
+      <p class="muted">所有 Serverless 模型常駐在 GPU 上，沒有冷啟動。每個模型都標示 H100 與 RTX 5090 是否適用、目前在哪台機器運行。同一個模型不論由哪台機器處理，價格都一樣。價格以美元計，依實際用量從儲值餘額扣款。</p></div>
     </div>
+    <section class="machines">${Object.entries(MACHINES).map(([k,x])=>`<div class="panel machine">
+      <div class="section-head"><h3>${x.name}</h3><span class="tag">${x.count}</span></div>
+      <dl><dt>GPU</dt><dd>${x.spec}</dd><dt>記憶體</dt><dd class="mono">${x.mem}</dd><dt>精度</dt><dd class="mono">${x.fp}</dd><dt>適合</dt><dd>${x.fit}</dd>
+      <dt>運行中</dt><dd>${MODELS.filter(m=>m.run[k]==="live").map(m=>esc(m.name)).join("、")}</dd></dl></div>`).join("")}</section>
     <div class="filters">
       ${chips.map(([k,l])=>`<button type="button" class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join("")}
+      <select id="machineFilter" class="chip" aria-label="依機器篩選">${[["all","全部機器"],["h100","可在 H100 運行"],["r5090","可在 RTX 5090 運行"]].map(([k,l])=>`<option value="${k}" ${state.machine===k?"selected":""}>${l}</option>`).join("")}</select>
       <input class="search" id="modelSearch" type="search" placeholder="搜尋模型名稱或用途" value="${esc(state.q)}" aria-label="搜尋模型">
     </div>
     <div class="mgrid" id="modelGrid"></div>
@@ -491,7 +516,7 @@ function viewModels(){
 }
 function renderModelGrid(){
   const q = state.q.trim().toLowerCase();
-  const list = MODELS.filter(m => (state.filter==="all"||m.type===state.filter) &&
+  const list = MODELS.filter(m => (state.filter==="all"||m.type===state.filter) && (state.machine==="all"||m.run[state.machine]!=="no") &&
     (!q || (m.name+m.desc+m.tags.join("")+m.org).toLowerCase().includes(q)));
   $("#modelGrid").innerHTML = list.length ? list.map(modelCard).join("") : `<p class="muted">找不到符合「${esc(state.q)}」的模型。試試「中文」、「語音」或「embedding」。</p>`;
 }
@@ -585,13 +610,13 @@ function viewPricing(){
   const llm = MODELS.filter(m=>m.type==="llm"||m.type==="vision");
   return `<div class="view">
     <div class="section-head"><div style="display:grid;gap:8px"><span class="eyebrow">定價</span><h1>依用量計費，預付儲值</h1>
-      <p class="muted">沒有月費也沒有最低消費。儲值後依每個請求的實際 token 扣款，額度 12 個月內有效。所有價格以美元計、未稅。</p></div></div>
+      <p class="muted">沒有月費也沒有最低消費。儲值後依每個請求的實際 token 扣款，額度 12 個月內有效。價格只看模型，不論請求由 H100 或 RTX 5090 處理都相同。所有價格以美元計、未稅。</p></div></div>
 
     <section style="display:grid;gap:14px">
       <h2>語言與視覺模型</h2>
       <div class="tbl-wrap"><table class="num">
-        <thead><tr><th>模型</th><th>上下文</th><th class="r">輸入 / 1M</th><th class="r">快取輸入 / 1M</th><th class="r">輸出 / 1M</th><th class="r">批次 API</th></tr></thead>
-        <tbody>${llm.map(m=>`<tr><td><b>${m.name}</b><span class="sub">${m.quant} · ${m.gpu}</span></td><td>${m.ctx}</td><td class="r mono">${fmtRate(m.in)}</td><td class="r mono">${fmtRate(m.cached)}</td><td class="r mono">${fmtRate(m.out)}</td><td class="r"><span class="tag ok">5 折</span></td></tr>`).join("")}</tbody>
+        <thead><tr><th>模型</th><th>運行機器</th><th>上下文</th><th class="r">輸入 / 1M</th><th class="r">快取輸入 / 1M</th><th class="r">輸出 / 1M</th><th class="r">批次 API</th></tr></thead>
+        <tbody>${llm.map(m=>`<tr><td><b>${m.name}</b><span class="sub">${m.quant}</span></td><td><span class="mach live">${m.gpu}</span></td><td>${m.ctx}</td><td class="r mono">${fmtRate(m.in)}</td><td class="r mono">${fmtRate(m.cached)}</td><td class="r mono">${fmtRate(m.out)}</td><td class="r"><span class="tag ok">5 折</span></td></tr>`).join("")}</tbody>
       </table></div>
       <p class="muted" style="font-size:.84rem">快取輸入：同一前綴（例如固定的 system prompt）重複出現時，重複部分以半價計算。批次 API 在 24 小時內完成，於離峰時段執行。</p>
     </section>
@@ -599,11 +624,11 @@ function viewPricing(){
     <section style="display:grid;gap:14px">
       <h2>嵌入、重排與語音</h2>
         <div class="tbl-wrap"><table class="num">
-          <thead><tr><th>模型</th><th>計價單位</th><th class="r">價格</th></tr></thead>
+          <thead><tr><th>模型</th><th>運行機器</th><th>計價單位</th><th class="r">價格</th></tr></thead>
           <tbody>
-            <tr><td><b>BGE-M3</b><span class="sub">Embedding · 1024 維</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
-            <tr><td><b>BGE-Reranker-v2-M3</b><span class="sub">Rerank</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
-            <tr><td><b>Whisper large-v3-turbo</b><span class="sub">語音轉文字</span></td><td>每分鐘音訊</td><td class="r mono">$0.0015</td></tr>
+            <tr><td><b>BGE-M3</b><span class="sub">Embedding · 1024 維</span></td><td><span class="mach live">RTX 5090</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
+            <tr><td><b>BGE-Reranker-v2-M3</b><span class="sub">Rerank</span></td><td><span class="mach live">RTX 5090</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
+            <tr><td><b>Whisper large-v3-turbo</b><span class="sub">語音轉文字</span></td><td><span class="mach live">RTX 5090</span></td><td>每分鐘音訊</td><td class="r mono">$0.0015</td></tr>
           </tbody></table></div>
     </section>
 
@@ -832,6 +857,7 @@ function wireModels(){
     if(c){ state.filter=c.dataset.filter; document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed", x===c)); renderModelGrid(); }
   });
   $("#modelSearch").addEventListener("input", e=>{ state.q=e.target.value; renderModelGrid(); });
+  $("#machineFilter").addEventListener("change", e=>{ state.machine=e.target.value; renderModelGrid(); });
 }
 function wirePg(){
   renderPg();
