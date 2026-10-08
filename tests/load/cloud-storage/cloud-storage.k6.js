@@ -21,7 +21,6 @@ const API = {
   photos: '/api/photos',          // POST 上傳 / GET 列表
   thumb: (id, size) => `/api/photos/${id}/thumbnail?size=${size}`,
   photoStatus: (id) => `/api/photos/${id}/status`,
-  photoOriginal: (id) => `/api/photos/${id}/original`,
 };
 
 // ---- 自訂指標 ----
@@ -53,17 +52,16 @@ const plans = {
 const S = plans[SCENARIO];
 if (!S) fail(`unknown SCENARIO ${SCENARIO}`);
 
-// 總人數依角色平分成 4 組(各約 25%),以 exec 區分行為
-const perRole = Math.max(1, Math.round(S.users * 0.25));
-const scenario = (exec) => ({ executor: 'constant-vus', vus: perRole, duration: S.duration,
-                              gracefulStop: '2m', exec });
+// 總人數依角色分成 3 組(100 人 = 34 / 33 / 33),以 exec 區分行為
+const share = (i) => Math.max(1, Math.floor(S.users / 3) + (i < S.users % 3 ? 1 : 0));
+const scenario = (exec, i) => ({ executor: 'constant-vus', vus: share(i), duration: S.duration,
+                                 gracefulStop: '2m', exec });
 
 export const options = {
   scenarios: {
-    file_user: scenario('fileUser'),
-    video_viewer: scenario('videoViewer'),
-    photo_browser: scenario('photoBrowser'),
-    photo_uploader: scenario('photoUploader'),
+    file_user: scenario('fileUser', 0),
+    video_viewer: scenario('videoViewer', 1),
+    photo_uploader: scenario('photoUploader', 2),
   },
   thresholds: {
     http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: true, delayAbortEval: '1m' }],
@@ -159,29 +157,7 @@ export function videoViewer() {
   });
 }
 
-// ---- 角色 3:照片瀏覽者 ----
-export function photoBrowser() {
-  if (!auth) auth = login();
-  if (!auth) { sleep(5); return; }
-  group('photo_browse', () => {
-    const list = http.get(`${BASE_URL}${API.photos}?limit=30`, A({ tags: { kind: 'api', name: 'list_photos' } }));
-    const photos = list.status === 200 ? list.json() : [];
-    if (!photos.length) { errRate.add(true); sleep(3); return; }
-    const reqs = photos.map((p) => ['GET', `${BASE_URL}${API.thumb(p.id, 'medium')}`, null,
-      A({ responseType: 'none', tags: { kind: 'thumb', name: 'thumbnail' } })]);
-    for (const r of http.batch(reqs)) {
-      const ok = check(r, { 'thumb 200': (x) => x.status === 200 });
-      errRate.add(!ok);
-      if (ok) thumbLoad.add(r.timings.duration);
-    }
-    const o = http.get(`${BASE_URL}${API.photoOriginal(randomItem(photos).id)}`,
-      A({ responseType: 'none', tags: { kind: 'transfer', name: 'photo_original' } }));
-    errRate.add(o.status !== 200);
-  });
-  sleep(randomIntBetween(1, 2));
-}
-
-// ---- 角色 4:照片上傳 + 縮圖 ----
+// ---- 角色 3:照片上傳 + 縮圖 ----
 export function photoUploader() {
   if (!auth) auth = login();
   if (!auth) { sleep(5); return; }
