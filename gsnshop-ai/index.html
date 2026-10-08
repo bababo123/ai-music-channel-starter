@@ -296,12 +296,9 @@ const MODELS = [
    ctx:"8K", in:0.02, out:null, gpu:"GPU 1", quant:"FP16", tags:["Rerank"]},
   {id:"whisper-large-v3-turbo", name:"Whisper large-v3-turbo", org:"OpenAI · MIT", type:"audio", color:"var(--d4)", logo:"WH",
    desc:"語音轉文字，支援中文、台語口音中文與英文，輸出含時間軸字幕。",
-   unit:"min", perMin:0.0015, gpu:"GPU 0", quant:"FP16", tags:["語音轉文字","字幕"]},
-  {id:"dedicated-h100", name:"專屬 H100 80GB", org:"預約制 · 自帶或指定模型", type:"dedicated", color:"var(--ink)", logo:"H1",
-   desc:"整張 H100 專用，可部署 Llama-3.3-70B（FP8）、Qwen3-32B 或你的 LoRA 微調模型。",
-   unit:"hr", perHour:3.50, gpu:"GPU 1（離峰時段）", quant:"依模型", tags:["專屬部署","最少 4 小時"]}
+   unit:"min", perMin:0.0015, gpu:"GPU 0", quant:"FP16", tags:["語音轉文字","字幕"]}
 ];
-const TYPE_LABEL = {llm:"語言模型", vision:"視覺", embed:"嵌入 / 重排", audio:"語音", dedicated:"專屬部署"};
+const TYPE_LABEL = {llm:"語言模型", vision:"視覺", embed:"嵌入 / 重排", audio:"語音"};
 const GPUS = [
   {name:"GPU 0 · H100 SXM 80GB", util:71, temp:63, power:548, parts:[
     {label:"gpt-oss-120b 權重", gb:61, c:"var(--d1)"},
@@ -319,7 +316,7 @@ const PACKS = [
 const TIERS = [
   {name:"試用", cond:"註冊即送 $1 額度", rpm:10, tpm:"40K", extra:["僅限 Serverless 模型","7 天內有效"]},
   {name:"Tier 1", cond:"累積儲值 ≥ $10", rpm:60, tpm:"200K", extra:["所有 Serverless 模型","Email 支援"]},
-  {name:"Tier 2", cond:"累積儲值 ≥ $100", rpm:300, tpm:"1M", extra:["可預約專屬 H100","批次 API 5 折"]},
+  {name:"Tier 2", cond:"累積儲值 ≥ $100", rpm:300, tpm:"1M", extra:["批次 API 5 折","每月用量報表"]},
   {name:"企業", cond:"月用量 ≥ $1,000", rpm:"客製", tpm:"客製", extra:["保留容量 SLA","發票月結、專人窗口"]}
 ];
 
@@ -355,7 +352,6 @@ function copy(text){
 function tokens(s){ const cjk=(s.match(/[\u3000-\u9fff\uff00-\uffef]/g)||[]).length; return Math.max(1, Math.round(cjk + (s.length-cjk)/4)); }
 function priceLine(m){
   if(m.type==="audio") return `<div><span>每分鐘</span><b>${usd(m.perMin,4)}</b></div><div><span>每小時音訊</span><b>${usd(m.perMin*60)}</b></div>`;
-  if(m.type==="dedicated") return `<div><span>每 GPU 小時</span><b>${usd(m.perHour)}</b></div><div><span>月租保留</span><b>洽詢</b></div>`;
   if(m.out==null) return `<div><span>每 1M token</span><b>${fmtRate(m.in)}</b></div><div><span>上下文</span><b>${m.ctx}</b></div>`;
   return `<div><span>輸入 / 1M</span><b>${fmtRate(m.in)}</b></div><div><span>輸出 / 1M</span><b>${fmtRate(m.out)}</b></div><div><span>上下文</span><b>${m.ctx}</b></div>`;
 }
@@ -474,13 +470,13 @@ function viewHome(){
     <section class="features">
       <div class="feature panel pad"><h3>資料留在自有機房</h3><p>請求只在 GSN 的 GPU 上處理，不轉送第三方，不保存提示詞內容，也不用於模型訓練。</p></div>
       <div class="feature panel pad"><h3>預付儲值，帳單透明</h3><p>每個請求依實際 token 扣款，控制台可依金鑰、模型查看用量。可設定餘額不足提醒。</p></div>
-      <div class="feature panel pad"><h3>需要整張卡也可以</h3><p>累積儲值滿 $100 可預約專屬 H100，部署 70B 模型或自己的 LoRA 微調版本。</p></div>
+      <div class="feature panel pad"><h3>批次任務半價</h3><p>不急著要結果的大量任務（資料標註、文件摘要、翻譯）走批次 API，24 小時內完成，價格打 5 折。</p></div>
     </section>
   </div>`;
 }
 
 function viewModels(){
-  const chips = [["all","全部"],["llm","語言模型"],["vision","視覺"],["embed","嵌入 / 重排"],["audio","語音"],["dedicated","專屬部署"]];
+  const chips = [["all","全部"],["llm","語言模型"],["vision","視覺"],["embed","嵌入 / 重排"],["audio","語音"]];
   return `<div class="view">
     <div class="section-head">
       <div style="display:grid;gap:8px"><span class="eyebrow">模型庫</span><h1>模型</h1>
@@ -600,9 +596,8 @@ function viewPricing(){
       <p class="muted" style="font-size:.84rem">快取輸入：同一前綴（例如固定的 system prompt）重複出現時，重複部分以半價計算。批次 API 在 24 小時內完成，於離峰時段執行。</p>
     </section>
 
-    <section class="split" style="align-items:start">
-      <div style="display:grid;gap:14px;min-width:0">
-        <h2>嵌入、重排與語音</h2>
+    <section style="display:grid;gap:14px">
+      <h2>嵌入、重排與語音</h2>
         <div class="tbl-wrap"><table class="num">
           <thead><tr><th>模型</th><th>計價單位</th><th class="r">價格</th></tr></thead>
           <tbody>
@@ -610,18 +605,6 @@ function viewPricing(){
             <tr><td><b>BGE-Reranker-v2-M3</b><span class="sub">Rerank</span></td><td>每 1M tokens</td><td class="r mono">$0.020</td></tr>
             <tr><td><b>Whisper large-v3-turbo</b><span class="sub">語音轉文字</span></td><td>每分鐘音訊</td><td class="r mono">$0.0015</td></tr>
           </tbody></table></div>
-      </div>
-      <div style="display:grid;gap:14px;min-width:0">
-        <h2>專屬 H100</h2>
-        <div class="tbl-wrap"><table class="num">
-          <thead><tr><th>方案</th><th>內容</th><th class="r">價格</th></tr></thead>
-          <tbody>
-            <tr><td><b>隨選預約</b><span class="sub">最少 4 小時</span></td><td>整張 H100 80GB</td><td class="r mono">$3.50 / 時</td></tr>
-            <tr><td><b>離峰包</b><span class="sub">平日 22:00–08:00</span></td><td>每月 200 小時</td><td class="r mono">$480 / 月</td></tr>
-            <tr><td><b>LoRA 微調</b><span class="sub">gpt-oss-20b、Qwen3-30B</span></td><td>每 1M 訓練 tokens</td><td class="r mono">$0.60</td></tr>
-          </tbody></table></div>
-        <p class="muted" style="font-size:.84rem">叢集共 2 張 H100，專屬方案一次只開放 1 張，需 Tier 2 以上並提前 24 小時預約。</p>
-      </div>
     </section>
 
     <section style="display:grid;gap:14px">
