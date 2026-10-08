@@ -14,7 +14,7 @@
 | `#reserve` | Reserve Instances（現有頁面的重現，可加入購物車） |
 | `#vms` | Access VMs（現有頁面的佔位） |
 | `#orders` | Order Summary：主機與 AI Credits 訂單 |
-| `#models` | AI Models：H100 / RTX 5090 機器規格、依類型或機器篩選、每個模型的適用機器與價格 |
+| `#models` | AI Models：H100 / RTX 5090 機器規格、使用步驟、依類型或機器篩選、每個模型的適用機器與價格；按「Use」開啟 Model ID、API 金鑰與範例程式碼 |
 | `#credits` | Buy Credits：儲值方案表，One-time / Monthly 切換，加入購物車 |
 | `#cart` | Cart：數量調整、Summary、Continue → 付款；超過 $3,000 改走匯款 |
 | `#playground` | 對話測試，每則回覆顯示 token 數、費用與服務機器 |
@@ -22,6 +22,7 @@
 | `#usage` | Usage：餘額、14 天花費圖、請求紀錄 |
 
 購買流程：Buy Credits → 購物車圖示 → Cart → Continue → 付款 → Order Summary（額度即時入帳）。
+使用流程：AI Credits 是所有模型共用的餘額。到 AI Models 按模型的「Use」，複製 Model ID 與程式碼，用 API 金鑰呼叫，費用自動從餘額扣除。
 金額超過 $3,000 時，與現有網站相同，按 Continue 後建立待匯款訂單，由業務以 Email 提供匯款資訊。
 
 ## 目前是模擬的部分

@@ -200,10 +200,27 @@ input[type=range]{accent-color:var(--accent);padding:0!important;border:0!import
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-inline:12px}
 .two > *{min-width:0}
 .two .box{margin-inline:0}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding-inline:12px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:center;font-size:.8rem}
+.step .n{grid-row:span 2;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.78rem;background:#3A3B3F}
+.step.done .n{background:var(--ok);color:#10261A}
+.step b{font-weight:600}
+.step span{color:var(--muted);font-size:.74rem}
+.step a{color:var(--active)}
+.scrim{position:fixed;inset:0;background:#000a;z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:41;width:min(520px,100%);background:var(--panel-2);border-left:1px solid #45464A;overflow-y:auto;padding:calc(20px + env(safe-area-inset-top,0px)) 22px calc(24px + env(safe-area-inset-bottom,0px));display:grid;gap:18px;align-content:start;box-shadow:-12px 0 40px #0008}
+.drawer-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.drawer .x{background:none;border:1px solid #4A4B4F;border-radius:4px;width:30px;height:30px;cursor:pointer;font-size:1rem;flex:none}
+.drawer h3{font-size:.8rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+.kv-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:.8rem}
+.kv-grid dt{color:var(--faint)} .kv-grid dd{margin:0}
+.idrow{display:flex;gap:8px;align-items:center}
+.idrow .keybox{flex:1;min-width:0}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#F2F2F3;color:#1C1D1F;padding:9px 16px;border-radius:999px;font-size:.82rem;z-index:50;box-shadow:0 6px 24px #0008}
 
 @media (max-width:1000px){
-  .cart,.pg,.two{grid-template-columns:1fr}
+  .cart,.pg,.two,.steps{grid-template-columns:1fr}
   .stats{grid-template-columns:repeat(2,1fr)}
   .hw{grid-template-columns:1fr}
 }
@@ -217,7 +234,7 @@ input[type=range]{accent-color:var(--accent);padding:0!important;border:0!import
   .main{padding:24px 16px 56px}
   .top{padding-inline:16px}
   .credit-chip span{display:none}
-  .search-row,.active-filters,.tbl-wrap,.note,.hw,.stats,.pg,.two{padding-inline:0}
+  .search-row,.active-filters,.tbl-wrap,.note,.hw,.stats,.pg,.two,.steps{padding-inline:0}
   .box{margin-inline:0}
   .citem{grid-template-columns:1fr auto}
   .citem .cprice{grid-column:1}
@@ -325,6 +342,7 @@ const state = {
   creditPlan: "once",            // Buy Credits toggle
   mType: "all", mMachine: "all", mQuery: "", showFilters: false,
   checkout: false,
+  useModel: null,               // model id open in the "Use" drawer
   pg: {model:"qwen3-30b-a3b-instruct-2507", msgs:[], temp:0.7, max:1024, sys:"You are GSN's support assistant. Answer briefly.", spent:0}
 };
 function save(){ ["balance","cart","orders","keys"].forEach(k=>store.set(k, state[k])); }
@@ -393,6 +411,7 @@ function pageModels(){
         <div class="legend">${g.parts.map(p=>`<span><i style="background:${p.c}"></i>${p.label} ${p.gb}GB</span>`).join("")}</div></div>`;}).join("")}
       <dl><dt>GPU</dt><dd>${x.spec}</dd><dt>Memory</dt><dd class="mono">${x.mem}</dd><dt>Best for</dt><dd>${x.fit}</dd></dl>
     </div>`).join("")}</div>
+    ${usageSteps()}
     <div class="search-row">
       <span class="label">Search Models:</span>
       <div class="search-tools">
@@ -409,7 +428,16 @@ function pageModels(){
       <thead><tr><th>Model</th><th>Type</th><th>Machines</th><th>Context</th><th class="r">Input / 1M</th><th class="r">Cached / 1M</th><th class="r">Output / 1M</th><th>Action</th></tr></thead>
       <tbody id="modelRows"></tbody>
     </table></div>
-    <p class="note">Prices in USD, deducted from your AI Credits. Cached input applies to repeated prompt prefixes. Batch API jobs are billed at 50%. Failed requests are not billed.</p>
+    ${state.useModel?useDrawer(MODELS.find(m=>m.id===state.useModel)):""}
+    <p class="note">AI Credits are one balance shared by every model; you choose the model in each API request with its model ID. Prices in USD, deducted from your AI Credits. Cached input applies to repeated prompt prefixes. Batch API jobs are billed at 50%. Failed requests are not billed.</p>
+  </div>`;
+}
+function usageSteps(){
+  const hasCredit = state.balance > 0, hasKey = state.keys.length > 0;
+  return `<div class="steps" aria-label="How to use your AI Credits">
+    <div class="step${hasCredit?" done":""}"><span class="n">${hasCredit?"✓":"1"}</span><b>Buy AI Credits</b><span>${hasCredit?`Balance ${usd(state.balance)}. Works with every model below.`:`<a href="#credits">Buy credits</a> to start.`}</span></div>
+    <div class="step${hasKey?" done":""}"><span class="n">${hasKey?"✓":"2"}</span><b>Create an API key</b><span>${hasKey?`${state.keys.length} active key${state.keys.length>1?"s":""}. <a href="#keys">Manage</a>`:`<a href="#keys">Create a key</a> for your app.`}</span></div>
+    <div class="step"><span class="n">3</span><b>Pick a model and click Use</b><span>Copy its model ID and code. Each call is billed to your credits.</span></div>
   </div>`;
 }
 function renderModelRows(){
@@ -423,10 +451,42 @@ function renderModelRows(){
     <td>${m.ctx||"—"}</td>
     ${m.perMin!=null ? `<td class="r" colspan="3"><span class="promo">${usd(m.perMin,4)}</span> <span class="faint">per audio minute</span></td>`
       : `<td class="r promo num">${rate(m.in)}</td><td class="r num">${m.out==null?"—":rate(m.cached)}</td><td class="r promo num">${rate(m.out)}</td>`}
-    <td>${(m.type==="text"||m.type==="vision")?`<a class="btn sm" href="#playground" data-try="${m.id}">Try</a>`:`<a class="btn sm" href="#keys">API</a>`}</td></tr>`).join("")
+    <td><div class="btn-row"><button type="button" class="btn sm primary" data-use="${m.id}">Use</button>${(m.type==="text"||m.type==="vision")?`<a class="btn sm" href="#playground" data-try="${m.id}">Try</a>`:""}</div></td></tr>`).join("")
     : `<tr><td colspan="8" class="muted">No models match. Clear the search or reset filters.</td></tr>`;
 }
 
+const ENDPOINT = {text:"/v1/chat/completions", vision:"/v1/chat/completions", embedding:"/v1/embeddings", audio:"/v1/audio/transcriptions"};
+function useDrawer(m){
+  const hasCredit = state.balance > 0, key = state.keys[0];
+  const endpoint = m.id.includes("reranker") ? "/v1/rerank" : ENDPOINT[m.type];
+  return `<div class="scrim" data-close-use></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="useTitle">
+    <div class="drawer-head"><div class="prod"><span class="mlogo" style="background:${m.color}">${m.logo}</span><span><b id="useTitle" style="font-size:1.05rem">${esc(m.name)}</b><small>${esc(m.org)}</small></span></div>
+      <button type="button" class="x" data-close-use aria-label="Close">×</button></div>
+    <p class="muted" style="font-size:.82rem">${esc(m.desc)}</p>
+
+    <div class="${hasCredit?"notice":"notice"}" style="${hasCredit?"background:#1E3328;border-color:#2F7D57":""}">
+      ${hasCredit?`<span>Billed to your AI Credits. Balance <b class="mono">${usd(state.balance)}</b>. No separate purchase per model.</span>`
+        :`<span>Your AI Credits balance is $0. Requests to this model return 402 until you top up.</span><div><a class="btn sm primary" href="#credits">Buy AI Credits</a></div>`}
+    </div>
+
+    <div style="display:grid;gap:8px"><h3>1 · Model ID</h3>
+      <div class="idrow"><div class="keybox">${m.id}</div><button type="button" class="btn sm" data-copytext="${m.id}">Copy</button></div>
+      <dl class="kv-grid"><dt>Endpoint</dt><dd class="mono">POST ${endpoint}</dd>
+        <dt>Price</dt><dd class="num">${m.perMin!=null?`${usd(m.perMin,4)} per audio minute`:m.out==null?`${rate(m.in)} per 1M tokens`:`${rate(m.in)} in · ${rate(m.cached)} cached · ${rate(m.out)} out, per 1M tokens`}</dd>
+        <dt>Machines</dt><dd>${machChips(m)}</dd>${m.ctx?`<dt>Context</dt><dd>${m.ctx}</dd>`:""}</dl>
+    </div>
+
+    <div style="display:grid;gap:8px"><h3>2 · API key</h3>
+      ${key?`<p style="font-size:.8rem">Use any of your keys, for example <b>${esc(key.name)}</b> <span class="mono faint">${key.prefix}</span>. Set it as <span class="mono">GSN_API_KEY</span>.</p><div><a class="btn sm" href="#keys">Manage keys</a></div>`
+        :`<p style="font-size:.8rem">You don't have an API key yet.</p><div><a class="btn sm primary" href="#keys">Create API key</a></div>`}
+    </div>
+
+    <div style="display:grid;gap:8px"><h3>3 · Call the model</h3>${codeBlock(m.id, m.type==="embedding"&&endpoint==="/v1/rerank"?"rerank":m.type)}</div>
+
+    <div class="btn-row">${(m.type==="text"||m.type==="vision")?`<a class="btn primary" href="#playground" data-try="${m.id}">Open in Playground</a>`:""}<a class="btn" href="#usage">View usage</a></div>
+  </aside>`;
+}
 function pageCredits(){
   const monthly = state.creditPlan==="monthly";
   return `<div class="page">
@@ -570,28 +630,86 @@ function sendPg(text){
   },25);
 }
 
-function codeBlock(model){
-  const sn = {
-    python:`<span class="k">from</span> openai <span class="k">import</span> OpenAI
+function codeBlock(model, type="text"){
+  const S = t => `<span class="s">${t}</span>`, K = t => `<span class="k">${t}</span>`;
+  const base = `client = OpenAI(
+    base_url=${S('"https://api.gsnshop.amaryllo.us/v1"')},
+    api_key=os.environ[${S('"GSN_API_KEY"')}],
+)`;
+  const hdr = `  -H ${S('"Authorization: Bearer $GSN_API_KEY"')} \\\n`;
+  const snippets = {
+    text:{
+      python:`${K("import")} os
+${K("from")} openai ${K("import")} OpenAI
 
-client = OpenAI(
-    base_url=<span class="s">"https://api.gsnshop.amaryllo.us/v1"</span>,
-    api_key=<span class="s">"gsn-sk-..."</span>,
-)
+${base}
 r = client.chat.completions.create(
-    model=<span class="s">"${model}"</span>,
-    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"Hello"</span>}],
+    model=${S(`"${model}"`)},
+    messages=[{${S('"role"')}: ${S('"user"')}, ${S('"content"')}: ${S('"Hello"')}}],
 )
 print(r.choices[0].message.content)`,
-    curl:`curl https://api.gsnshop.amaryllo.us/v1/chat/completions \\
-  -H <span class="s">"Authorization: Bearer $GSN_API_KEY"</span> \\
-  -H <span class="s">"Content-Type: application/json"</span> \\
-  -d <span class="s">'{"model": "${model}", "messages": [{"role": "user", "content": "Hello"}]}'</span>`,
-    node:`<span class="k">import</span> OpenAI <span class="k">from</span> <span class="s">"openai"</span>;
-<span class="k">const</span> client = <span class="k">new</span> OpenAI({ baseURL: <span class="s">"https://api.gsnshop.amaryllo.us/v1"</span>, apiKey: process.env.GSN_API_KEY });
-<span class="k">const</span> r = <span class="k">await</span> client.chat.completions.create({ model: <span class="s">"${model}"</span>, messages: [{ role: <span class="s">"user"</span>, content: <span class="s">"Hello"</span> }] });`
+      curl:`curl https://api.gsnshop.amaryllo.us/v1/chat/completions \\
+${hdr}  -H ${S('"Content-Type: application/json"')} \\
+  -d ${S(`'{"model": "${model}", "messages": [{"role": "user", "content": "Hello"}]}'`)}`,
+      node:`${K("import")} OpenAI ${K("from")} ${S('"openai"')};
+${K("const")} client = ${K("new")} OpenAI({ baseURL: ${S('"https://api.gsnshop.amaryllo.us/v1"')}, apiKey: process.env.GSN_API_KEY });
+${K("const")} r = ${K("await")} client.chat.completions.create({
+  model: ${S(`"${model}"`)},
+  messages: [{ role: ${S('"user"')}, content: ${S('"Hello"')} }],
+});
+console.log(r.choices[0].message.content);`},
+    vision:{
+      python:`${K("import")} os
+${K("from")} openai ${K("import")} OpenAI
+
+${base}
+r = client.chat.completions.create(
+    model=${S(`"${model}"`)},
+    messages=[{${S('"role"')}: ${S('"user"')}, ${S('"content"')}: [
+        {${S('"type"')}: ${S('"text"')}, ${S('"text"')}: ${S('"Read the total on this invoice"')}},
+        {${S('"type"')}: ${S('"image_url"')}, ${S('"image_url"')}: {${S('"url"')}: ${S('"https://example.com/invoice.jpg"')}}},
+    ]}],
+)
+print(r.choices[0].message.content)`,
+      curl:`curl https://api.gsnshop.amaryllo.us/v1/chat/completions \\
+${hdr}  -H ${S('"Content-Type: application/json"')} \\
+  -d ${S(`'{"model": "${model}", "messages": [{"role": "user", "content": [{"type": "text", "text": "Read the total"}, {"type": "image_url", "image_url": {"url": "https://example.com/invoice.jpg"}}]}]}'`)}`},
+    embedding:{
+      python:`${K("import")} os
+${K("from")} openai ${K("import")} OpenAI
+
+${base}
+r = client.embeddings.create(model=${S(`"${model}"`)}, input=[${S('"GPU 伺服器租用"')}, ${S('"AI inference"')}])
+print(len(r.data[0].embedding))  ${`<span class="c"># 1024</span>`}`,
+      curl:`curl https://api.gsnshop.amaryllo.us/v1/embeddings \\
+${hdr}  -H ${S('"Content-Type: application/json"')} \\
+  -d ${S(`'{"model": "${model}", "input": ["GPU server rental"]}'`)}`},
+    rerank:{
+      curl:`curl https://api.gsnshop.amaryllo.us/v1/rerank \\
+${hdr}  -H ${S('"Content-Type: application/json"')} \\
+  -d ${S(`'{"model": "${model}", "query": "H100 price", "documents": ["H100 costs...", "Shipping policy..."]}'`)}`,
+      python:`${K("import")} os, requests
+
+r = requests.post(${S('"https://api.gsnshop.amaryllo.us/v1/rerank"')},
+    headers={${S('"Authorization"')}: ${S('f"Bearer {os.environ[\'GSN_API_KEY\']}"')}},
+    json={${S('"model"')}: ${S(`"${model}"`)}, ${S('"query"')}: ${S('"H100 price"')},
+          ${S('"documents"')}: [${S('"H100 costs..."')}, ${S('"Shipping policy..."')}]})
+print(r.json())`},
+    audio:{
+      python:`${K("import")} os
+${K("from")} openai ${K("import")} OpenAI
+
+${base}
+${K("with")} open(${S('"meeting.mp3"')}, ${S('"rb"')}) ${K("as")} f:
+    r = client.audio.transcriptions.create(model=${S(`"${model}"`)}, file=f)
+print(r.text)`,
+      curl:`curl https://api.gsnshop.amaryllo.us/v1/audio/transcriptions \\
+${hdr}  -F model=${S(model)} \\
+  -F file=@meeting.mp3`}
   };
-  return `<div class="code"><div class="code-tabs" role="tablist">${Object.keys(sn).map((k,i)=>`<button type="button" role="tab" aria-selected="${!i}" data-lang="${k}">${{python:"Python",curl:"cURL",node:"Node.js"}[k]}</button>`).join("")}<button type="button" class="copy" data-copycode>Copy</button></div>
+  const sn = snippets[type] || snippets.text;
+  const label = {python:"Python",curl:"cURL",node:"Node.js"};
+  return `<div class="code"><div class="code-tabs" role="tablist">${Object.keys(sn).map((k,i)=>`<button type="button" role="tab" aria-selected="${!i}" data-lang="${k}">${label[k]}</button>`).join("")}<button type="button" class="copy" data-copycode>Copy</button></div>
     ${Object.entries(sn).map(([k,v],i)=>`<pre data-pane="${k}" ${i?"hidden":""}>${v}</pre>`).join("")}</div>`;
 }
 function pageKeys(){
@@ -663,7 +781,7 @@ function render(){
   if(current==="playground") wirePg();
   updateChrome();
 }
-function route(){ const r=(location.hash||"#reserve").slice(1); current=ROUTES[r]?r:"reserve"; if(current!=="cart") state.checkout=false; render(); window.scrollTo(0,0); }
+function route(){ const r=(location.hash||"#reserve").slice(1); current=ROUTES[r]?r:"reserve"; if(current!=="cart") state.checkout=false; if(current!=="models") state.useModel=null; render(); window.scrollTo(0,0); }
 
 const app=$("#app");
 app.addEventListener("click", e=>{
@@ -679,7 +797,10 @@ app.addEventListener("click", e=>{
   else if(b=q("[data-mtype]")){ state.mType=b.dataset.mtype; render(); }
   else if(b=q("#setFilters")){ state.showFilters=!state.showFilters; $("#filterPop").hidden=!state.showFilters; b.setAttribute("aria-expanded",state.showFilters); }
   else if(b=q("#resetFilters")){ state.mType="all"; state.mMachine="all"; state.mQuery=""; state.showFilters=false; render(); }
-  else if(b=q("[data-try]")){ state.pg.model=b.dataset.try; }
+  else if(b=q("[data-use]")){ state.useModel=b.dataset.use; render(); $(".drawer .x")?.focus(); }
+  else if(q("[data-close-use]")){ state.useModel=null; render(); }
+  else if(b=q("[data-copytext]")){ copy(b.dataset.copytext); }
+  else if(b=q("[data-try]")){ state.pg.model=b.dataset.try; state.useModel=null; }
   else if(b=q("[data-inc]")){ state.cart.find(i=>i.id===b.dataset.inc).qty++; save(); render(); }
   else if(b=q("[data-dec]")){ const it=state.cart.find(i=>i.id===b.dataset.dec); it.qty--; if(!it.qty) state.cart=state.cart.filter(i=>i!==it); save(); render(); }
   else if(b=q("#clearCart")){ state.cart=[]; state.checkout=false; save(); render(); }
@@ -731,6 +852,7 @@ function wirePg(){
   [["pgTemp","oTemp","temp"],["pgMax","oMax","max"]].forEach(([i,o,k])=>$("#"+i).addEventListener("input",e=>{ state.pg[k]=+e.target.value; $("#"+o).textContent=e.target.value; }));
   $("#pgClear").addEventListener("click",()=>{ if(state.pg.busy) return; state.pg.msgs=[]; state.pg.spent=0; renderPg(); });
 }
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && state.useModel){ state.useModel=null; render(); } });
 window.addEventListener("hashchange", route);
 route();
 </script>
