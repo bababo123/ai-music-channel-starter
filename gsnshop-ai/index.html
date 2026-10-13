@@ -298,7 +298,7 @@ const GPUS = [
 // Prices are USD per 1M tokens and are the same whichever machine serves the request.
 const MODELS = [
   {id:"gpt-oss-120b", name:"gpt-oss-120b", org:"OpenAI · Apache-2.0", type:"text", color:"var(--d1)", logo:"OA",
-   desc:"117B MoE (5.1B active). Reasoning, tool calling, long documents.", ctx:"128K", in:0.18, cached:0.09, out:0.72, speed:160, gpu:"H100 #0", run:{h100:"live", r5090:"no"}},
+   desc:"117B MoE (5.1B active). Reasoning, tool calling, long documents.", ctx:"128K", in:0.15, cached:0.075, out:0.60, speed:160, gpu:"H100 #0", run:{h100:"live", r5090:"no"}},
   {id:"qwen3-30b-a3b-instruct-2507", name:"Qwen3-30B-A3B-Instruct-2507", org:"Alibaba Qwen · Apache-2.0", type:"text", color:"var(--d2)", logo:"QW",
    desc:"30B MoE (3B active). Strong Traditional Chinese, support bots, RAG.", ctx:"128K", in:0.15, cached:0.075, out:0.60, speed:190, gpu:"H100 #1", run:{h100:"live", r5090:"no"}},
   {id:"gpt-oss-20b", name:"gpt-oss-20b", org:"OpenAI · Apache-2.0", type:"text", color:"#C2669A", logo:"OA",
@@ -310,7 +310,7 @@ const MODELS = [
   {id:"bge-reranker-v2-m3", name:"BGE-Reranker-v2-M3", org:"BAAI · Apache-2.0", type:"embedding", color:"var(--d3)", logo:"RR",
    desc:"Reranker for RAG retrieval.", ctx:"8K", in:0.02, out:null, gpu:"RTX 5090", run:{h100:"ok", r5090:"live"}},
   {id:"whisper-large-v3-turbo", name:"Whisper large-v3-turbo", org:"OpenAI · MIT", type:"audio", color:"var(--d4)", logo:"WH",
-   desc:"Speech to text with timestamps. Mandarin, Taiwanese-accented Mandarin, English.", perMin:0.0015, gpu:"RTX 5090", run:{h100:"ok", r5090:"live"}}
+   desc:"Speech to text with timestamps. Mandarin, Taiwanese-accented Mandarin, English.", perMin:0.0009, gpu:"RTX 5090", run:{h100:"ok", r5090:"live"}}
 ];
 const TYPE_LABEL = {text:"Text", vision:"Vision", embedding:"Embedding", audio:"Audio"};
 const PACKS = [
