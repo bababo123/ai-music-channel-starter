@@ -22,7 +22,7 @@ const API = {
   videos: '/api/videos',
   videoStream: (id) => `/api/videos/${id}/stream`,
   photos: '/api/photos',          // POST 上傳 / GET 列表
-  thumb: (id, size) => `/api/photos/${id}/thumbnail?size=${size}`,
+  thumb: (id) => `/api/photos/${id}/thumbnail`,   // 每張照片只有一種縮圖
   photoStatus: (id) => `/api/photos/${id}/status`,
 };
 
@@ -221,12 +221,10 @@ export function photoUploader() {
     errRate.add(!ready);
     if (ready) {
       thumbReady.add(Date.now() - t0);
-      for (const size of ['small', 'medium', 'large']) {
-        const t = http.get(`${BASE_URL}${API.thumb(id, size)}`,
-          A({ responseType: 'none', tags: { kind: 'thumb', name: 'thumbnail' } }));
-        errRate.add(t.status !== 200);
-        if (t.status === 200) thumbLoad.add(t.timings.duration);
-      }
+      const t = http.get(`${BASE_URL}${API.thumb(id)}`,
+        A({ responseType: 'none', tags: { kind: 'thumb', name: 'thumbnail' } }));
+      errRate.add(t.status !== 200);
+      if (t.status === 200) thumbLoad.add(t.timings.duration);
     }
   });
   sleep(randomIntBetween(2, 5));
