@@ -182,8 +182,9 @@ export function videoViewer() {
     const v = randomItem(videos);
     const chunk = 2 * 1024 * 1024;
     let pos = 0;
-    const segments = randomIntBetween(10, 20);               // ≈30~60s 播放
-    for (let i = 0; i < segments; i++) {
+    const watchMs = 60 * 1000;                               // 連續看 60 秒,中間不停頓
+    const start = Date.now();
+    while (Date.now() - start < watchMs) {
       if (Math.random() < 0.1) pos = randomIntBetween(0, 200) * chunk; // seek
       const r = http.get(`${BASE_URL}${API.videoStream(v.id)}`,
         A({ headers: { ...auth.headers, Range: `bytes=${pos}-${pos + chunk - 1}` },
@@ -192,7 +193,6 @@ export function videoViewer() {
       errRate.add(!ok);
       if (ok) { videoRange.add(r.timings.waiting); bytesDown.add(chunk); }
       pos += chunk;
-      sleep(randomIntBetween(2, 4));                         // 模擬播放緩衝間隔
     }
   });
 }
